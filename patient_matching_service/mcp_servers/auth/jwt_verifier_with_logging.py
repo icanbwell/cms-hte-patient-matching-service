@@ -1,6 +1,6 @@
 import logging
 import time
-from typing import Any, override
+from typing import override
 
 from authlib.jose.errors import JoseError
 from fastmcp.server.auth import AccessToken
