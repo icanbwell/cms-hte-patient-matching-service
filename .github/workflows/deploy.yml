@@ -1,0 +1,60 @@
+name: patient-matching-service - Deploy
+run-name: patient-matching-service to ${{ inputs.env }} - ${{ inputs.env }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        type: string
+        description: Tag to deploy
+        required: true
+      env:
+        type: choice
+        description: Environment to be deployed
+        required: true
+        options:
+          - dev-ue1
+          - staging-ue1
+          - prod-ue1
+          - client-sandbox-ue1
+    secrets:
+      BWELL_DEV_PAT:
+        required: true
+
+env:
+  SERVICE_NAME: patient-matching-service
+  SERVICE_NAMESPACE: patient-matching-service-${{ inputs.env }}
+
+jobs:
+  deploy:
+    name: Deploy
+    runs-on: main
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Checkout icanbwell/cie.gha-deploy
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          repository: icanbwell/cie.gha-deploy
+          token: ${{ secrets.BWELL_DEV_PAT }}
+          path: .github/actions/cie.gha-deploy
+
+      - name: Deploy
+        uses: ./.github/actions/cie.gha-deploy
+        with:
+          token: ${{ secrets.BWELL_DEV_PAT }}
+          service-name: $SERVICE_NAME
+          service-namespace: $SERVICE_NAMESPACE
+          env: ${{ inputs.env }}
+          image-tag: ${{ github.event.inputs.tag }}
+
+      - name: 'Cleanup build folder'
+        if: always()
+        run: |
+          ls -la ./
+          sudo rm -rf ${{ github.workspace }}/*
+          ls -la ./

@@ -1,0 +1,23 @@
+services:
+  dev:
+    build:
+      dockerfile: Dockerfile
+      context: .
+      target: development
+    container_name: patient-matching-service
+    environment:
+      LOG_LEVEL: INFO
+      OTEL_SERVICE_NAME: patient-matching-service
+      OTEL_TRACES_EXPORTER: none
+      OTEL_METRICS_EXPORTER: none
+      OTEL_LOGS_EXPORTER: none
+    env_file: .env
+    ports:
+      - '5050:5000'
+    volumes:
+    - ./:/usr/src/patient-matching-service/
+    healthcheck:
+      test: curl --fail -s http://localhost:5000/health || exit 1
+      interval: 1m30s
+      timeout: 10s
+      retries: 3

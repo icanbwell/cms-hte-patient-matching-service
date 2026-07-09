@@ -1,0 +1,11 @@
+query getProviders {
+    providers(
+        query_id: "foo"
+        query: "Jim"
+    ) {
+        total_count
+        results {
+            result_id
+        }
+    }
+}
