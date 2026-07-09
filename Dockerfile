@@ -1,90 +1,117 @@
-# Stage 1: Install production dependencies
+# Stage 1: Production dependencies
+# This stage installs production Python dependencies using uv
 FROM public.ecr.aws/docker/library/python:3.12-alpine3.20 AS python_packages
 
+# Set terminal width (COLUMNS) and height (LINES)
 ENV COLUMNS=300
 
-# Install uv
-COPY --from=ghcr.io/astral-sh/uv:0.7.12 /uv /uvx /usr/local/bin/
+# Copy uv binary from official uv image
+COPY --from=ghcr.io/astral-sh/uv:0.11.6 /uv /uvx /usr/local/bin/
+
+# Set environment variables for uv
 ENV UV_PROJECT_ENVIRONMENT=/opt/venv
 ENV UV_COMPILE_BYTECODE=1
 ENV UV_LINK_MODE=copy
 
-# Define build args
-ARG RUN_UV_LOCK=false
-
-# Install common tools (git is required for some Python packages)
+# Install common tools and dependencies (git is required for some Python packages)
 RUN apk add --no-cache git
 
-WORKDIR /usr/src/patient-matching-service
+# Set the working directory inside the container
+WORKDIR /usr/src/patient_matching_service
 
-# Copy dependency files
-COPY pyproject.toml uv.lock* /usr/src/patient-matching-service/
+# Copy pyproject.toml and uv.lock to the working directory
+COPY pyproject.toml uv.lock* /usr/src/patient_matching_service/
 
-# Conditionally re-lock if requested
-RUN if [ "$RUN_UV_LOCK" = "true" ]; then echo "Locking dependencies" && rm -f uv.lock && uv lock --verbose; fi
+# Show the current pip configuration (for debugging purposes)
+RUN pip config list
 
-# Install production dependencies
+# Install all production dependencies using uv
 RUN uv sync --frozen --all-extras --no-install-project --verbose
 
-# Copy lock file to /tmp for retrieval
-RUN cp -f uv.lock /tmp/uv.lock
+# Copy uv.lock from working directory to /tmp for retrieval if needed
+RUN cp -n /usr/src/patient_matching_service/uv.lock /tmp/uv.lock
 
-# Stage 1b: Install dev dependencies (extends production)
+# Create necessary directories and list their contents (for debugging and verification)
+RUN mkdir -p /opt/venv/lib/python3.12/site-packages && ls -halt /opt/venv/lib/python3.12/site-packages
+RUN mkdir -p /opt/venv/bin && ls -halt /opt/venv/bin
+
+# Check and print system and Python platform information (for debugging)
+RUN python -c "import platform; print(platform.platform()); print(platform.architecture())"
+RUN python -c "import sys; print(sys.platform, sys.version, sys.maxsize > 2**32)"
+
+# Debug pip installation and list installed packages with verbosity
+RUN pip debug --verbose
+RUN pip list -v
+
+# Stage 1b: Development dependencies (extends production)
+# This stage installs dev dependencies on top of production
 FROM python_packages AS python_packages_dev
 
 RUN uv sync --frozen --all-extras --group dev --no-install-project --verbose
 
-# Stage 2: Production runtime
+# Stage 2: Production runtime image
 FROM public.ecr.aws/docker/library/python:3.12-alpine3.20 AS production
 
+# Set terminal width (COLUMNS) and height (LINES)
 ENV COLUMNS=300
-ENV UV_PROJECT_ENVIRONMENT=/opt/venv
-ENV PATH="/opt/venv/bin:$PATH"
-ENV PROJECT_DIR=/usr/src/patient-matching-service
-ENV PROMETHEUS_MULTIPROC_DIR=/tmp/prometheus
 
-# Install runtime dependencies
+# Install runtime dependencies required by the application
 RUN apk add --no-cache curl libstdc++ libffi git
 
-# Create Prometheus metrics directory
+# Set environment variables for project configuration
+ENV PROJECT_DIR=/usr/src/patient_matching_service
+ENV PROMETHEUS_MULTIPROC_DIR=/tmp/prometheus
+ENV PIP_ROOT_USER_ACTION=ignore
+ENV UV_PROJECT_ENVIRONMENT=/opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Create the directory for Prometheus metrics
 RUN mkdir -p ${PROMETHEUS_MULTIPROC_DIR}
 
+# Set the working directory for the project
 WORKDIR ${PROJECT_DIR}
 
-# Copy installed packages from build stage
+# Copy the application code into the runtime image (NO tests directory)
+COPY ./patient_matching_service ${PROJECT_DIR}/patient_matching_service
+
+# Copy installed Python packages from the previous stage
 COPY --from=python_packages /opt/venv /opt/venv
 
-# Copy dependency files
-COPY pyproject.toml ${PROJECT_DIR}/
-
-# Copy uv.lock from build stage (in case it was re-locked)
-COPY --from=python_packages /tmp/uv.lock ${PROJECT_DIR}/uv.lock
+# Copy Pipfile.lock to a temporary directory so it can be retrieved if needed
 COPY --from=python_packages /tmp/uv.lock /tmp/uv.lock
 
-# Copy application code
-COPY ./patientmatchingservice ${PROJECT_DIR}/patientmatchingservice
+# Create directories and list their contents (for debugging and verification)
+RUN mkdir -p /opt/venv/lib/python3.12/site-packages && ls -halt /opt/venv/lib/python3.12/site-packages
+RUN mkdir -p /opt/venv/bin && ls -halt /opt/venv/bin
 
-# Expose port 5000
+# Expose port 5000 for the application
 EXPOSE 5000
 
-# Create restricted user
+# Switch to the root user to perform user management tasks
 USER root
+
+# Create a restricted user (appuser) and group (appgroup) for running the application
 RUN addgroup -S appgroup && adduser -S -h /etc/appuser appuser -G appgroup
+
+# Ensure that the appuser owns the application files and directories
 RUN chown -R appuser:appgroup ${PROJECT_DIR} /opt/venv ${PROMETHEUS_MULTIPROC_DIR}
+
+# Switch to the restricted user to enhance security
 USER appuser
 
-CMD ["opentelemetry-instrument", "uvicorn", "patientmatchingservice.api:app", "--host", "0.0.0.0", "--port", "5000", "--workers", "4", "--log-level", "debug"]
-
-# Stage 3: Development runtime (extends production with dev deps and tests)
+# Stage 3: Development runtime (extends production with dev deps, tests, and hot reload)
 FROM production AS development
 
 USER root
+# Copy dev dependencies (superset of production)
 COPY --from=python_packages_dev /opt/venv /opt/venv
+# Copy tests directory for development
 COPY ./tests ${PROJECT_DIR}/tests
 RUN chown -R appuser:appgroup /opt/venv ${PROJECT_DIR}/tests
 USER appuser
 
-CMD ["uvicorn", "patientmatchingservice.api:app", "--host", "0.0.0.0", "--port", "5000", "--reload", "--log-level", "debug"]
+# Override CMD with hot-reload for local development
+CMD ["uvicorn", "patient_matching_service.api:app", "--host", "0.0.0.0", "--port", "5000", "--reload"]
 
-# Default target is production
+# Default: bare `docker build .` produces production image
 FROM production

@@ -1,10 +1,26 @@
-# patientmatchingservice
+# patient_matching_service
 
 To run it locally:
 
+## Prerequisites
+
+- Python 3.12+
+- Docker (for containerized development)
+- [uv](https://github.com/astral-sh/uv) (Python package manager)
+
+## Setup
+
+Private packages are hosted on JFrog. Set `JFROG_READ_TOKEN` in your environment before building:
+
+```bash
+export JFROG_READ_TOKEN="<your-jfrog-token>"
 ```
+
+Add it to `~/.zshrc` or `~/.bashrc` to persist across sessions.
+
+```bash
 git clone
-make devsetup
+make init
 make up
 ```
 

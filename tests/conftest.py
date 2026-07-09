@@ -12,7 +12,7 @@ import os
 import pytest
 from fastapi.testclient import TestClient
 
-from patientmatchingservice.api import app
+from patient_matching_service.api import app
 
 
 @pytest.fixture
@@ -27,6 +27,7 @@ def graphql_client() -> Generator[TestClient, None, None]:
 
     client = TestClient(app)
     yield client  # Use `yield` to ensure any teardown can happen after the test runs
+
 
 @pytest.fixture
 async def async_client() -> AsyncGenerator[httpx.AsyncClient, None]:

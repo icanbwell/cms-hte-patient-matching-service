@@ -8,7 +8,7 @@ from fastmcp.server.auth.providers.jwt import RSAKeyPair
 from fastmcp.server.dependencies import AccessToken
 from httpx import ConnectError
 
-from patientmatchingservice.mcp_servers.auth.jwt_verifier_with_logging import (
+from patient_matching_service.mcp_servers.auth.jwt_verifier_with_logging import (
     JwtVerifierWithLogging,
 )
 
@@ -222,4 +222,4 @@ class BearerAuthManager:
         email_override = os.getenv("TEST_GOOGLE_DRIVE_EMAIL")
         if email_override:
             return email_override
-        return access_token.client_id
+        return cast(str | None, access_token.client_id)

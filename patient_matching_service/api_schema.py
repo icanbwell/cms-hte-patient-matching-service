@@ -9,11 +9,13 @@ from ariadne import (
     ScalarType,
 )
 
-from patientmatchingservice.providers.my_search_results_provider import (
+from patient_matching_service.providers.my_search_results_provider import (
     MyResultsProvider,
 )
-from patientmatchingservice.providers.results_provider import ResultsProvider
-from patientmatchingservice.providers.search_resolver_provider import SearchResolverProvider
+from patient_matching_service.providers.results_provider import ResultsProvider
+from patient_matching_service.providers.search_resolver_provider import (
+    SearchResolverProvider,
+)
 
 
 datetime_scalar = ScalarType("DateTime")
@@ -28,9 +30,7 @@ class ApiSchema:
     results_provider: ResultsProvider = MyResultsProvider()
 
     query: QueryType = QueryType()
-    query.set_field(
-        "providers", SearchResolverProvider(results_provider).resolve_async
-    )
+    query.set_field("providers", SearchResolverProvider(results_provider).resolve_async)
 
     mutation = MutationType()
     # mutation.set_field(

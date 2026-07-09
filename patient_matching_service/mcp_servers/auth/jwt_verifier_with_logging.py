@@ -1,6 +1,6 @@
 import logging
 import time
-from typing import override
+from typing import Any, override
 
 from authlib.jose.errors import JoseError
 from fastmcp.server.auth import AccessToken
@@ -51,29 +51,23 @@ class JwtVerifierWithLogging(JWTVerifier):
             AccessToken object if valid, None if invalid or expired
         """
         try:
-            # Get verification key (static or from JWKS)
-            verification_key = await self._get_verification_key(token)
-            logger.debug(f"Received verification key: {verification_key}")
+            # Use the parent class for JWT decoding
+            claims = await super().load_access_token(token)
+            if claims is None:
+                return None
 
-            # Decode and verify the JWT token
-            claims = self.jwt.decode(token, verification_key)
-            logger.debug(f"Decoded claims: {claims}")
-
-            # Select the client identifier from JWT claims using the following precedence:
-            # 1. Prefer "client_id" if present, as this is the canonical identifier for OAuth2 clients.
-            # 2. If "client_id" is missing, use "email" if present, as it may identify the user in some systems.
-            # 3. If both are missing, use "sub" (subject), which is a standard JWT claim for the principal.
-            # 4. If none of these claims are present, default to "unknown".
+            # Extract client ID for logging
             client_id = (
-                claims.get("client_id")
-                or claims.get("email")
-                or claims.get("sub")
+                claims.client_id
+                or claims.claims.get("client_id")
+                or claims.claims.get("email")
+                or claims.claims.get("sub")
                 or "unknown"
             )
             logger.debug(f"Client ID: {client_id}")
 
             # Validate expiration
-            exp = claims.get("exp")
+            exp = claims.expires_at
             now = time.time()
             # convert exp to string for logging
             exp_str = (
@@ -107,7 +101,7 @@ class JwtVerifierWithLogging(JWTVerifier):
             # Validate issuer - note we use issuer instead of issuer_url here because
             # issuer is optional, allowing users to make this check optional
             if self.issuer:
-                claim_issuer = claims.get("iss")
+                claim_issuer = claims.claims.get("iss")
                 if claim_issuer != self.issuer:
                     logger.warning(
                         f"Token validation failed: issuer mismatch for client {client_id}. Claim issuer: {claim_issuer}, Expected: {self.issuer}"
@@ -119,7 +113,7 @@ class JwtVerifierWithLogging(JWTVerifier):
 
             # Validate audience if configured
             if self.audience:
-                aud = claims.get("aud")
+                aud = claims.claims.get("aud")
 
                 # Handle different combinations of audience types
                 audience_valid = False
@@ -150,7 +144,7 @@ class JwtVerifierWithLogging(JWTVerifier):
                     return None
 
             # Extract scopes
-            scopes = self._extract_scopes(claims)
+            scopes = claims.scopes
             logger.debug(f"Scopes extracted: {scopes}")
             logger.info(
                 f"Token validated successfully for client {client_id} with scopes: {scopes} exp: {exp_str}, now: {now_str}"
@@ -159,7 +153,7 @@ class JwtVerifierWithLogging(JWTVerifier):
                 token=token,
                 client_id=str(client_id),
                 scopes=scopes,
-                expires_at=int(exp) if exp else None,
+                expires_at=exp,
             )
 
         except JoseError as je:

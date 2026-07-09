@@ -1,6 +1,6 @@
 from typing import Any, Dict, Optional
 
-from patientmatchingservice.providers.results_provider import ResultsProvider
+from patient_matching_service.providers.results_provider import ResultsProvider
 
 
 class MyResultsProvider(ResultsProvider):
@@ -12,11 +12,4 @@ class MyResultsProvider(ResultsProvider):
         client: Optional[str] = None,
         test: bool = False,
     ) -> Dict[str, Any]:
-        return {
-            "total_count": 1,
-            "results": [
-                {
-                    "result_id": 123
-                }
-            ]
-        }
+        return {"total_count": 1, "results": [{"result_id": 123}]}

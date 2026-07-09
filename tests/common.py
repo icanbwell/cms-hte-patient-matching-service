@@ -5,7 +5,7 @@ import httpx
 from asgi_lifespan import LifespanManager
 from httpx import AsyncClient
 
-from patientmatchingservice.api import app
+from patient_matching_service.api import app
 
 
 @asynccontextmanager

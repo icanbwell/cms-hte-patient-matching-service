@@ -10,18 +10,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, HTMLResponse
 from prometheus_fastapi_instrumentator import Instrumentator
 from contextlib import asynccontextmanager, AbstractAsyncContextManager
-from typing import (
-    AsyncGenerator,
-    AsyncContextManager,
-    Callable,
-    Mapping,
-    Any
-)
+from typing import AsyncGenerator, AsyncContextManager, Callable, Mapping, Any
 
-from patientmatchingservice.api_schema import ApiSchema
-from patientmatchingservice.filters.endpoint_filter import EndpointFilter
-from patientmatchingservice.mcp_servers.math_server.math_server import MathServerMCP
-from patientmatchingservice.mcp_servers.middleware.fastapi_logging_middleware import (
+from patient_matching_service.api_schema import ApiSchema
+from patient_matching_service.filters.endpoint_filter import EndpointFilter
+from patient_matching_service.mcp_servers.math_server.math_server import MathServerMCP
+from patient_matching_service.mcp_servers.middleware.fastapi_logging_middleware import (
     FastApiLoggingMiddleware,
 )
 
@@ -35,6 +29,7 @@ logger = logging.getLogger(__name__)
 # disable logging calls to /health endpoint
 uvicorn_logger = logging.getLogger("uvicorn.access")
 uvicorn_logger.addFilter(EndpointFilter(path="/health"))
+
 
 # Your existing lifespan
 @asynccontextmanager
@@ -74,21 +69,24 @@ def create_composite_lifespan(
 
     return composite_lifespan
 
+
 math_server_mcp_app = MathServerMCP.get_app()
 
 app = FastAPI(
-        lifespan=create_composite_lifespan(
-            math_server_mcp_app.lifespan,
-            app_lifespan,
-        )
+    lifespan=create_composite_lifespan(
+        math_server_mcp_app.lifespan,
+        app_lifespan,
     )
+)
 
 app.mount(MathServerMCP.path, math_server_mcp_app)
 
 app.add_middleware(FastApiLoggingMiddleware)
 
 
-PLAYGROUND_HTML: Optional[str] = ExplorerPlayground(title="patientmatchingservice").html(None)  # type: ignore[no-untyped-call]
+PLAYGROUND_HTML: Optional[str] = ExplorerPlayground(
+    title="patient_matching_service"
+).html(None)
 
 # Set up CORS middleware; adjust parameters as needed
 # noinspection PyTypeChecker
@@ -124,7 +122,9 @@ def graphql_playground() -> str:
 @app.post("/graphql")
 async def graphql_server(request: Request) -> JSONResponse:
     data = await request.json()
-    print(f"API call [{request.client.host if request.client else None}] {data!r}")
+    logger.info(
+        f"API call [{request.client.host if request.client else None}] {data!r}"
+    )
 
     success, result = await graphql(
         ApiSchema.schema, data, context_value=request, debug=app.debug
@@ -133,4 +133,5 @@ async def graphql_server(request: Request) -> JSONResponse:
     status_code = 200 if success else 400
     return JSONResponse(result, status_code=status_code)
 
-logger.info(f"FastAPI app created")
+
+logger.info("FastAPI app created")

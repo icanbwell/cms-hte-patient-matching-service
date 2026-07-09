@@ -1,0 +1,43 @@
+bwell:
+  serviceName: patient_matching_service
+  containerPort: 5000
+  terminationGracePeriodSeconds: 30
+  livenessProbe:
+    path: /health
+    timeoutSeconds: 20
+    periodSeconds: 20
+    failureThreshold: 3
+    initialDelaySeconds: 0
+  readinessProbe:
+    path: /health
+    timeoutSeconds: 15
+    periodSeconds: 15
+    failureThreshold: 1
+    initialDelaySeconds: 0
+  startupProbe:
+    path: /health
+    timeoutSeconds: 1
+    periodSeconds: 5
+    failureThreshold: 30
+  ssmSecrets:
+
+commonEnv:
+  - name: DEBUG_METRICS
+    value: '0'
+  - name: LOG_LEVEL
+    value: 'INFO'
+  - name: AWS_REGION
+    value: 'us-east-1'
+  - name: NUM_WORKERS
+    value: '10'
+
+image:
+  repository: "856965016623.dkr.ecr.us-east-1.amazonaws.com/patient_matching_service"
+  tag: ""  # Tag is added in github workflow
+
+resources:
+  limits:
+    memory: 2G
+  requests:
+    cpu: 100m
+    memory: 1G

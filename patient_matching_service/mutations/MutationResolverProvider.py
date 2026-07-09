@@ -2,7 +2,7 @@ from typing import Any, Optional
 
 from graphql import GraphQLResolveInfo
 
-from patientmatchingservice.mutations.MutationProvider import MutationProvider
+from patient_matching_service.mutations.MutationProvider import MutationProvider
 
 
 class MutationResolverProvider:

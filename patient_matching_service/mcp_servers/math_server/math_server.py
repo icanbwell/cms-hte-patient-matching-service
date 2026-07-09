@@ -35,6 +35,23 @@ class MathServerMCP:
         :return: FastMCP instance with defined tools and prompts.
         """
 
+        # If you want to do Auth
+        # well_known_url = os.getenv("AUTH_WELL_KNOWN_URI")
+        # token_verifier: TokenVerifier | None = (
+        #     BearerAuthManager.get_mcp_token_verifier()
+        #     if well_known_url or os.getenv("AUTH_JWKS_URI")
+        #     else None
+        # )
+        # auth: AuthProvider | None = (
+        #     RemoteAuthProvider(
+        #         token_verifier=token_verifier,
+        #         authorization_servers=[AnyHttpUrl(well_known_url)],
+        #         resource_server_url="https://test/google_drive",
+        #     )
+        #     if token_verifier and well_known_url
+        #     else None
+        # )
+        # mcp: FastMCP[Any] = FastMCP("GoogleDrive", auth=auth)
         mcp: FastMCP[Any] = FastMCP("Math")
 
         @mcp.tool()
@@ -65,4 +82,3 @@ class MathServerMCP:
             return PlainTextResponse("OK")
 
         return mcp
-

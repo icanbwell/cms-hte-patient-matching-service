@@ -2,7 +2,7 @@ from typing import Any, Dict, Optional
 
 from graphql import GraphQLResolveInfo
 
-from patientmatchingservice.providers.results_provider import ResultsProvider
+from patient_matching_service.providers.results_provider import ResultsProvider
 
 
 class SearchResolverProvider:

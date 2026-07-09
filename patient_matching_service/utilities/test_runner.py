@@ -10,7 +10,7 @@ from deepdiff import DeepDiff  # For Deep Difference of 2 objects
 
 
 def get_json_schema(
-    obj: Dict[str, Any] | List[Dict[str, Any]]
+    obj: Dict[str, Any] | List[Dict[str, Any]],
 ) -> Dict[str, Any] | List[Dict[str, Any]] | str:
     """Recursively extracts the schema (structure and data types) from a JSON object."""
     if isinstance(obj, dict):
@@ -88,14 +88,14 @@ async def run_test_runner_async(
             # Compare structure only by ignoring values
             response_schema = get_json_schema(response_json)
             expected_schema = get_json_schema(expected_json)
-            assert (
-                response_schema == expected_schema
-            ), f"{graphql_file_name}: \n{response_schema}\n!=\n{expected_schema}"
+            assert response_schema == expected_schema, (
+                f"{graphql_file_name}: \n{response_schema}\n!=\n{expected_schema}"
+            )
             if fn_check_output is not None:
                 check_output = fn_check_output(response_json)
-                assert (
-                    check_output is None
-                ), f"{graphql_file_name} failed output check function: {check_output}"
+                assert check_output is None, (
+                    f"{graphql_file_name} failed output check function: {check_output}"
+                )
         else:
             # assert sorted(response.json.items()) == sorted(expected_json.items())
             differences = DeepDiff(
