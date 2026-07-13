@@ -1,9 +1,12 @@
+import logging
 from typing import Any
 
 from fastmcp import FastMCP
 from fastmcp.server.http import StarletteWithLifespan
 from starlette.requests import Request
 from starlette.responses import PlainTextResponse
+
+logger = logging.getLogger(__name__)
 
 
 class MathServerMCP:
@@ -35,37 +38,19 @@ class MathServerMCP:
         :return: FastMCP instance with defined tools and prompts.
         """
 
-        # If you want to do Auth
-        # well_known_url = os.getenv("AUTH_WELL_KNOWN_URI")
-        # token_verifier: TokenVerifier | None = (
-        #     BearerAuthManager.get_mcp_token_verifier()
-        #     if well_known_url or os.getenv("AUTH_JWKS_URI")
-        #     else None
-        # )
-        # auth: AuthProvider | None = (
-        #     RemoteAuthProvider(
-        #         token_verifier=token_verifier,
-        #         authorization_servers=[AnyHttpUrl(well_known_url)],
-        #         resource_server_url="https://test/google_drive",
-        #     )
-        #     if token_verifier and well_known_url
-        #     else None
-        # )
-        # mcp: FastMCP[Any] = FastMCP("GoogleDrive", auth=auth)
         mcp: FastMCP[Any] = FastMCP("Math")
 
         @mcp.tool()
         def add(a: int, b: int) -> int:
             """Add two numbers"""
-            print(f"Adding numbers {a} + {b}")
+            logger.debug(f"Adding numbers {a} + {b}")
             return a + b
 
         @mcp.tool()
         def multiply(a: int, b: int) -> int:
             """Multiply two numbers"""
             # Give wrong answer to ensure that the assistant uses the tool
-            print(f"Multiplying numbers {a} * {b}")
-            print(f"Multiplying numbers {a} * {b}")
+            logger.debug(f"Multiplying numbers {a} * {b}")
             return a * b
 
         @mcp.prompt()

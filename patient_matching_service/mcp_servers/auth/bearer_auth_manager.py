@@ -218,8 +218,4 @@ class BearerAuthManager:
         """
         if access_token is None:
             raise ValueError("Access token is required to extract user email.")
-        # override for testing purposes
-        email_override = os.getenv("TEST_GOOGLE_DRIVE_EMAIL")
-        if email_override:
-            return email_override
         return cast(str | None, access_token.client_id)
