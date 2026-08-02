@@ -1,11 +1,10 @@
 import logging
 import time
-from typing import override, Callable, Awaitable, cast
+from typing import override, Callable, Awaitable, cast, AsyncIterator
 
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response, StreamingResponse
-from starlette.concurrency import iterate_in_threadpool
 
 logger = logging.getLogger(__name__)
 
@@ -49,13 +48,34 @@ class FastApiLoggingMiddleware(BaseHTTPMiddleware):
         # if response is StreamingResponse, we need to read the body
         if "body_iterator" in response.__dict__:
             response1: StreamingResponse = cast(StreamingResponse, response)
-            res_body: list[str | bytes | memoryview] = [
-                section async for section in response1.body_iterator
-            ]
-            response1.body_iterator = iterate_in_threadpool(iter(res_body))
-            if len(res_body) > 0:
+            # body_iterator is declared as AsyncIterable, not AsyncIterator, so we
+            # must call __aiter__() ourselves before we can pull items from it.
+            original_iterator = response1.body_iterator.__aiter__()
+            try:
+                first_chunk: (
+                    str | bytes | memoryview | None
+                ) = await original_iterator.__anext__()
+            except StopAsyncIteration:
+                first_chunk = None
+
+            # Only peek at the first chunk for logging purposes. Draining the
+            # whole stream here (as the previous implementation did) would
+            # buffer the entire response in memory before dispatch() returns,
+            # defeating streaming (e.g. SSE) and risking large memory usage
+            # for big responses. Instead, lazily rechain the peeked chunk with
+            # the remainder of the original iterator so the client still
+            # receives the response as a genuine stream.
+            async def _rechain() -> AsyncIterator[str | bytes | memoryview]:
+                if first_chunk is not None:
+                    yield first_chunk
+                async for section in original_iterator:
+                    yield section
+
+            response1.body_iterator = _rechain()
+
+            if first_chunk is not None:
                 # Turn response body object to string
-                res_body_ = res_body[0]
+                res_body_ = first_chunk
                 res_body_text = (
                     res_body_.decode()
                     if isinstance(res_body_, bytes)
