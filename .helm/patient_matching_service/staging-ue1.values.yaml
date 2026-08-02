@@ -1,0 +1,18 @@
+
+bwell:
+  environment: "staging-ue1"
+  iamRole: arn:aws:iam::435975920517:role/staging-irsa-complaint-parser
+  ingress:
+    internal:
+      enabled: true
+      hosts:
+        - host: patient_matching_service.staging.bwell.zone
+          paths:
+            - "/"
+        - host: patient_matching_service.staging-ue1.bwell.zone
+          paths:
+            - "/"
+    external:
+      enabled: falseÏ
+
+  env:

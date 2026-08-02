@@ -1,0 +1,93 @@
+name: Build and Test
+
+# Controls when the action will run. Triggers the workflow on push or pull request
+# events but only for the master branch
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build_and_test:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checks-out your repository
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: create .env
+        run: |
+          touch ./.env
+
+      - name: pre-commit
+        run: make run-pre-commit && make clean-pre-commit
+
+      - name: Set correct permissions for tests
+        run: |
+          sudo chmod -R 777 ${{ github.workspace }}
+
+      - name: Create reports output folder
+        run: |
+          mkdir -p ${{ github.workspace }}/reports
+          chmod -R 777 ${{ github.workspace }}/reports
+
+
+      # setup and install everything and run tests
+      - name: up
+        run: make up
+
+      - name: tests
+        run: |
+          docker compose run --rm --name patient-matching-service-tests -v ${{ github.workspace }}/reports:/reports dev pytest . --tb=auto --junitxml=/reports/test-results.xml
+
+      - name: Upload pytest test results
+        uses: actions/upload-artifact@v4
+        with:
+          name: pytest-results
+          path: ${{ github.workspace }}/reports/**/*.xml
+        # Use always() to always run this step to publish test results when there are test failures
+        if: ${{ always() }}
+
+      - name: Verify reports are generated
+        if: ${{ always() }}
+        run: ls -halt ${{ github.workspace }}/reports/
+
+      # Publish all test results in the GitHub UI
+      - name: Surface failing tests
+        if: always()
+        uses: pmeier/pytest-results-action@20b595761ba9bf89e115e875f8bc863f913bc8ad # https://github.com/pmeier/pytest-results-action
+        with:
+          # A list of JUnit XML files, directories containing the former, and wildcard
+          # patterns to process.
+          # See @actions/glob for supported patterns.
+          path: ${{ github.workspace }}/reports/*.xml
+
+          # (Optional) Add a summary of the results at the top of the report
+          summary: true
+
+          # (Optional) Select which results should be included in the report.
+          # Follows the same syntax as `pytest -r`
+          display-options: fEX
+
+          # (Optional) Fail the workflow if no JUnit XML was found.
+          fail-on-empty: true
+
+          # (Optional) Title of the test results section in the workflow summary
+          title: Test results
+
+      - name: Cleanup
+        if: always()
+        run: |
+          docker compose down -v --remove-orphans
+
+      - name: 'Cleanup build folder'
+        if: always()
+        run: |
+          ls -la ./
+          sudo rm -rf ${{ github.workspace }}/*
+          ls -la ./

@@ -1,0 +1,18 @@
+
+bwell:
+  environment: "prod-ue1"
+  iamRole: arn:aws:iam::400686897767:role/prod-irsa-complaint-parser
+  ingress:
+    internal:
+      enabled: true
+      hosts:
+        - host: patient_matching_service.prod.bwell.zone
+          paths:
+            - "/"
+        - host: patient_matching_service.prod-ue1.bwell.zone
+          paths:
+            - "/"
+    external:
+      enabled: false
+
+  env:

@@ -1,0 +1,12 @@
+{
+  "data": {
+    "providers": {
+      "results": [
+        {
+          "result_id": "123"
+        }
+      ],
+      "total_count": 1
+    }
+  }
+}

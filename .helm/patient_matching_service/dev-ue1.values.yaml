@@ -1,0 +1,18 @@
+
+bwell:
+  environment: "dev-ue1"
+  iamRole: arn:aws:iam::875300655693:role/dev-irsa-patient_matching_service
+  ingress:
+    internal:
+      enabled: true
+      hosts:
+        - host: patient_matching_service.dev.bwell.zone
+          paths:
+            - "/"
+        - host: patient_matching_service.dev-ue1.bwell.zone
+          paths:
+            - "/"
+    external:
+      enabled: false
+
+  env:

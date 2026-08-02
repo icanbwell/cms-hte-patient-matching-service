@@ -1,0 +1,24 @@
+version: '3.5'
+services:
+  dev:
+    user: root
+    build:
+      dockerfile: Dockerfile
+      context: .
+      target: development
+    container_name: patient_matching_service
+    environment:
+      DEBUG_METRICS: 0
+      DD_TRACE_ENABLED: "false"
+      LOG_LEVEL: INFO
+    env_file: .env
+    ports:
+      - '5050:5000'
+    volumes:
+      - ./:/usr/src/patient_matching_service/
+    command: ["uvicorn", "patient_matching_service.api:app", "--host", "0.0.0.0", "--port", "5000", "--reload", "--log-level", "debug"]
+    healthcheck:
+      test: curl --fail -s http://localhost:5000/health || exit 1
+      interval: 1m30s
+      timeout: 10s
+      retries: 3

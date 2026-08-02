@@ -1,0 +1,118 @@
+[project]
+name = "patient_matching_service"
+version = "0.1.0"
+description = "FastAPI service for patient matching with FHIR integration"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "requests>=2.32.0",
+    "ariadne>=0.22.0",
+    "fastapi>=0.110.0",
+    "boto3>=1.34.59",
+    "uvicorn>=0.28.0",
+    "ddtrace>=2.6.3",
+    "prometheus-fastapi-instrumentator>=7.0.0",
+    "python-crfsuite>=0.9.11",
+    "httpx>=0.27.2",
+    "mcp>=1.11.0",
+    "fastmcp>=2.11.0",
+    "authlib>=1.6.1",
+    "joserfc>=1.2.2",
+]
+
+[dependency-groups]
+dev = [
+    "wheel>=0.43.0",
+    "pre-commit>=3.8.0",
+    "autoflake>=2.3.1",
+    "mypy>=1.11.2",
+    "pytest>=8.3.3",
+    "pytest-asyncio>=0.24.0",
+    "black>=24.8.0",
+    "deepdiff>=8.0.1",
+    "types-requests>=0",
+    "types-beautifulsoup4>=4.12.0.20241020",
+    "openai>=1.97.0",
+    "asgi-lifespan>=2.1.0",
+    "respx>=0.22.0",
+    "types-Authlib>=1.6.0",
+    "bandit>=1.8.3",
+    "ruff>=0.11.5",
+    "types-boto3>=1.40.0",
+]
+
+[tool.setuptools.dynamic]
+version = { file = "VERSION" }
+
+[[tool.uv.index]]
+name = "jfrog"
+url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/simple"
+explicit = true
+
+[tool.uv.sources]
+# Private packages hosted on JFrog (not available on PyPI)
+# None currently needed for patient_matching_service
+
+[tool.pytest.ini_options]
+addopts = "--capture=fd"
+anyio_backend = "asyncio"
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+asyncio_default_test_loop_scope = "function"
+
+[tool.mypy]
+python_version = "3.12"
+warn_return_any = true
+warn_unused_configs = true
+
+[[tool.mypy.overrides]]
+module = ["graphql"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["graphql.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["ariadne"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["ariadne.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["fastmcp"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["fastmcp.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["authlib"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["authlib.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["prometheus_fastapi_instrumentator"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["prometheus_fastapi_instrumentator.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["deepdiff"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["deepdiff.*"]
+ignore_missing_imports = true
+
+[tool.ruff]
+line-length = 88
+exclude = ["venv/"]
