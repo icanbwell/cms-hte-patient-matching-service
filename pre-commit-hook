@@ -10,4 +10,10 @@ fi
 
 GIT_PROJECT_ROOT=$(git rev-parse --show-toplevel)
 cd "$($GIT_PROJECT_ROOT "$0")"
-docker build --build-arg GITHUB_TOKEN=${GITHUB_TOKEN} -f ./pre-commit.Dockerfile -t pre-commit-patientmatchingservice . && docker run --rm --name pre-commit-run-patientmatchingservice -e PRE_COMMIT_ALL_FILES=$PRE_COMMIT_ALL_FILES -v pre-commit:/.cache/pre-commit:delegated -v $(pwd)/:/sourcecode pre-commit-patientmatchingservice
+# pre-commit.Dockerfile's uv sync now needs JFrog auth (pyproject.toml's index is the
+# default), passed as BuildKit secrets -- requires DOCKER_BUILDKIT=1, not ambient here.
+export DOCKER_BUILDKIT=1
+docker build --build-arg GITHUB_TOKEN=${GITHUB_TOKEN} \
+  --secret id=jfrog_read_user,env=JFROG_READ_USER \
+  --secret id=jfrog_read_token,env=JFROG_READ_TOKEN \
+  -f ./pre-commit.Dockerfile -t pre-commit-patientmatchingservice . && docker run --rm --name pre-commit-run-patientmatchingservice -e PRE_COMMIT_ALL_FILES=$PRE_COMMIT_ALL_FILES -v pre-commit:/.cache/pre-commit:delegated -v $(pwd)/:/sourcecode pre-commit-patientmatchingservice

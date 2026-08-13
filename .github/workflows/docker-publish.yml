@@ -18,7 +18,14 @@ env:
   REPOSITORY_URL: 856965016623.dkr.ecr.us-east-1.amazonaws.com
 
 jobs:
+  validate-packages:
+    uses: icanbwell/actions/.github/workflows/validate-pip-packages.yaml@main
+    with:
+      working-directory: .
+    secrets: inherit
+
   build-amd64:
+    needs: [validate-packages]
     runs-on: main
     steps:
       - uses: actions/checkout@v6
@@ -51,8 +58,9 @@ jobs:
           platforms: linux/amd64
           push: false
           target: production
-          secrets: |  # pragma: allowlist secret
-            "jfrog_token=${{ secrets.JFROG_READ_TOKEN }}"
+          secrets: |
+            jfrog_read_user=${{ secrets.JFROG_READ_USER }}
+            jfrog_read_token=${{ secrets.JFROG_READ_TOKEN }}
           tags: |
             ${{ env.REPOSITORY_URL }}/${{ env.IMAGE_NAME }}:${{ steps.vars.outputs.tag }}-amd64
           outputs: type=docker,dest=/tmp/amd64-image.tar
@@ -67,6 +75,7 @@ jobs:
           if-no-files-found: error
 
   build-arm64:
+    needs: [validate-packages]
     runs-on: main-arm
     steps:
       - uses: actions/checkout@v6
@@ -99,8 +108,9 @@ jobs:
           platforms: linux/arm64
           push: false
           target: production
-          secrets: |  # pragma: allowlist secret
-            "jfrog_token=${{ secrets.JFROG_READ_TOKEN }}"
+          secrets: |
+            jfrog_read_user=${{ secrets.JFROG_READ_USER }}
+            jfrog_read_token=${{ secrets.JFROG_READ_TOKEN }}
           tags: |
             ${{ env.REPOSITORY_URL }}/${{ env.IMAGE_NAME }}:${{ steps.vars.outputs.tag }}-arm64
           outputs: type=docker,dest=/tmp/arm64-image.tar

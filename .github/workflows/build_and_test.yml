@@ -9,9 +9,23 @@ on:
     branches: [ main ]
 
 jobs:
+  validate-packages:
+    uses: icanbwell/actions/.github/workflows/validate-pip-packages.yaml@main
+    with:
+      working-directory: .
+    secrets: inherit
+
   build_and_test:
+    needs: [validate-packages]
     # The type of runner that the job will run on
     runs-on: ubuntu-latest
+    # JFrog creds are needed by both the pre-commit step (builds pre-commit.Dockerfile,
+    # which runs `uv sync` against the now-default JFrog index) and the `up`/`tests` steps
+    # (build the main Dockerfile via docker-compose, whose secrets: block reads these same
+    # env vars).
+    env:
+      JFROG_READ_USER: ${{ secrets.JFROG_READ_USER }}
+      JFROG_READ_TOKEN: ${{ secrets.JFROG_READ_TOKEN }}
 
     steps:
       # Checks-out your repository

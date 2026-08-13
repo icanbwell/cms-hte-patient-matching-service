@@ -1,5 +1,8 @@
 # Environments
 docker.env
+.env
+.envrc
+.netrc
 
 # IDE
 .idea/*
