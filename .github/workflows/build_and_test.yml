@@ -8,12 +8,6 @@ on:
   pull_request:
     branches: [ main ]
 
-# Needed for the services-account ECR login (OIDC role-to-assume) that lets
-# the pre-commit/up steps below pull the root-mirror/python base image.
-permissions:
-  contents: read
-  id-token: write
-
 jobs:
   validate-packages:
     uses: icanbwell/actions/.github/workflows/validate-pip-packages.yaml@main
@@ -23,8 +17,18 @@ jobs:
 
   build_and_test:
     needs: [validate-packages]
-    # The type of runner that the job will run on
-    runs-on: ubuntu-latest
+    # Was ubuntu-latest (GitHub-hosted) -- switched to the self-hosted `main`
+    # runner pool. The pre-commit/up steps below now pull root-mirror/python,
+    # which needs the services-account ECR login below; that role
+    # (services-k8s-service-account-github-actions-runner) is only reachable
+    # via the self-hosted runners' Kubernetes-service-account-federated
+    # identity, not GitHub's native Actions OIDC -- confirmed by testing on
+    # ubuntu-latest, which failed with "web identity token provided could not
+    # be validated" even with `permissions: id-token: write` set. Every other
+    # already-migrated repo's equivalent job (ats-event-consumer's
+    # checks.yml, this repo's own docker-publish.yml) already runs on `main`
+    # for the same reason.
+    runs-on: main
     # JFrog creds are needed by both the pre-commit step (builds pre-commit.Dockerfile,
     # which runs `uv sync` against the now-default JFrog index) and the `up`/`tests` steps
     # (build the main Dockerfile via docker-compose, whose secrets: block reads these same
