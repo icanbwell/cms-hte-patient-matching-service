@@ -13,7 +13,7 @@ jobs:
     uses: icanbwell/actions/.github/workflows/validate-pip-packages.yaml@main
     with:
       working-directory: .
-    secrets: inherit
+    secrets: inherit  # pragma: allowlist secret -- not a literal secret, standard GHA syntax
 
   build_and_test:
     needs: [validate-packages]

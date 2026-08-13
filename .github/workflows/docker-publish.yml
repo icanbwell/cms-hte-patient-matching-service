@@ -22,7 +22,7 @@ jobs:
     uses: icanbwell/actions/.github/workflows/validate-pip-packages.yaml@main
     with:
       working-directory: .
-    secrets: inherit
+    secrets: inherit  # pragma: allowlist secret -- not a literal secret, standard GHA syntax
 
   build-amd64:
     needs: [validate-packages]
@@ -66,7 +66,7 @@ jobs:
           platforms: linux/amd64
           push: false
           target: production
-          secrets: |
+          secrets: |  # pragma: allowlist secret -- not a literal secret, standard GHA syntax
             jfrog_read_user=${{ secrets.JFROG_READ_USER }}
             jfrog_read_token=${{ secrets.JFROG_READ_TOKEN }}
           tags: |
@@ -124,7 +124,7 @@ jobs:
           platforms: linux/arm64
           push: false
           target: production
-          secrets: |
+          secrets: |  # pragma: allowlist secret -- not a literal secret, standard GHA syntax
             jfrog_read_user=${{ secrets.JFROG_READ_USER }}
             jfrog_read_token=${{ secrets.JFROG_READ_TOKEN }}
           tags: |
