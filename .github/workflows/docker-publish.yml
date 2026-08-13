@@ -38,6 +38,14 @@ jobs:
       - name: Login to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v2
 
+      # Separate from the login above: that one authenticates for pushing this
+      # repo's own built image, using this runner's ambient role. Pulling the
+      # Dockerfile's root-mirror/python base image needs a different login --
+      # that image lives in the services account (856965016623), which the
+      # ambient role doesn't have access to.
+      - name: ECR login (services account, for root-mirror base image pulls)
+        uses: ./.github/actions/ecr-login
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
 
@@ -87,6 +95,14 @@ jobs:
 
       - name: Login to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v2
+
+      # Separate from the login above: that one authenticates for pushing this
+      # repo's own built image, using this runner's ambient role. Pulling the
+      # Dockerfile's root-mirror/python base image needs a different login --
+      # that image lives in the services account (856965016623), which the
+      # ambient role doesn't have access to.
+      - name: ECR login (services account, for root-mirror base image pulls)
+        uses: ./.github/actions/ecr-login
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4

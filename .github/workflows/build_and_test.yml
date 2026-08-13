@@ -8,6 +8,12 @@ on:
   pull_request:
     branches: [ main ]
 
+# Needed for the services-account ECR login (OIDC role-to-assume) that lets
+# the pre-commit/up steps below pull the root-mirror/python base image.
+permissions:
+  contents: read
+  id-token: write
+
 jobs:
   validate-packages:
     uses: icanbwell/actions/.github/workflows/validate-pip-packages.yaml@main
@@ -33,6 +39,14 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+
+      # Both the pre-commit step below (builds pre-commit.Dockerfile) and the
+      # `up`/`tests` steps (build the main Dockerfile via docker-compose) FROM
+      # root-mirror/python, which lives in the services account (856965016623)
+      # -- a separate account from wherever this repo's own images publish to,
+      # needing its own role-to-assume rather than any ambient runner credentials.
+      - name: ECR login (services account, for root-mirror base image pulls)
+        uses: ./.github/actions/ecr-login
 
       - name: create .env
         run: |
