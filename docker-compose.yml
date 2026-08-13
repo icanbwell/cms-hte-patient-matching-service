@@ -6,6 +6,9 @@ services:
       dockerfile: Dockerfile
       context: .
       target: development
+      secrets:
+        - jfrog_read_user
+        - jfrog_read_token
     container_name: patient_matching_service
     environment:
       DEBUG_METRICS: 0
@@ -22,3 +25,9 @@ services:
       interval: 1m30s
       timeout: 10s
       retries: 3
+
+secrets:
+  jfrog_read_user:
+    environment: JFROG_READ_USER
+  jfrog_read_token:
+    environment: JFROG_READ_TOKEN

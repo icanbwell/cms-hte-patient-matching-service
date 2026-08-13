@@ -5,3 +5,11 @@
 .pytest_cache
 tmp
 Makefile
+.env
+.env.example
+.git
+.gitignore
+.venv/
+venv/
+__pycache__/
+*.pyc

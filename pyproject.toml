@@ -47,7 +47,7 @@ version = { file = "VERSION" }
 [[tool.uv.index]]
 name = "jfrog"
 url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/simple"
-explicit = true
+default = true
 
 [tool.uv.sources]
 # Private packages hosted on JFrog (not available on PyPI)
