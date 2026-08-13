@@ -52,6 +52,23 @@ jobs:
       - name: ECR login (services account, for root-mirror base image pulls)
         uses: ./.github/actions/ecr-login
 
+      # The self-hosted `main` runner image doesn't ship `make` or a modern
+      # Docker Compose CLI plugin -- unlike ubuntu-latest, which has both
+      # preinstalled. Matches the pattern already used by other repos' `main`
+      # runner CI (e.g. ats-event-consumer, helix.providersearch).
+      - name: Install make
+        run: |
+          sudo apt-get update && sudo apt-get install -y make
+          sudo apt-get clean
+
+      - name: Install Docker Compose CLI plugin
+        run: |
+          mkdir -p ~/.docker/cli-plugins/
+          curl -SL https://github.com/docker/compose/releases/download/v2.24.6/docker-compose-linux-x86_64 \
+            -o ~/.docker/cli-plugins/docker-compose
+          chmod +x ~/.docker/cli-plugins/docker-compose
+          docker compose version
+
       - name: create .env
         run: |
           touch ./.env
