@@ -10,4 +10,13 @@ fi
 
 GIT_PROJECT_ROOT=$(git rev-parse --show-toplevel)
 cd "$($GIT_PROJECT_ROOT "$0")"
-docker build --build-arg GITHUB_TOKEN=${GITHUB_TOKEN} -f ./pre-commit.Dockerfile -t pre-commit-patientmatchingservice . && docker run --rm --name pre-commit-run-patientmatchingservice -e PRE_COMMIT_ALL_FILES=$PRE_COMMIT_ALL_FILES -v pre-commit:/.cache/pre-commit:delegated -v $(pwd)/:/sourcecode pre-commit-patientmatchingservice
+
+if [ -z "$JFROG_READ_USER" ] || [ -z "$JFROG_READ_TOKEN" ]; then
+  echo "JFROG_READ_USER/JFROG_READ_TOKEN must be set in the shell to build pre-commit.Dockerfile (JFrog Alpine/uv auth)." >&2
+  exit 1
+fi
+
+docker build --build-arg GITHUB_TOKEN=${GITHUB_TOKEN} -f ./pre-commit.Dockerfile -t pre-commit-patientmatchingservice \
+  --secret id=jfrog_read_user,env=JFROG_READ_USER \
+  --secret id=jfrog_read_token,env=JFROG_READ_TOKEN \
+  . && docker run --rm --name pre-commit-run-patientmatchingservice -e PRE_COMMIT_ALL_FILES=$PRE_COMMIT_ALL_FILES -v pre-commit:/.cache/pre-commit:delegated -v $(pwd)/:/sourcecode pre-commit-patientmatchingservice
