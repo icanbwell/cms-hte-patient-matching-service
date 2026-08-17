@@ -61,11 +61,20 @@ jobs:
           sudo apt-get update && sudo apt-get install -y make
           sudo apt-get clean
 
+      # Verified against the release's published sha256 checksum, not just
+      # downloaded and run blind -- same pattern already used by
+      # ats-event-consumer's install-docker-compose action.
       - name: Install Docker Compose CLI plugin
         run: |
+          set -eu
+          DC_VERSION=v2.24.6
+          DC_ASSET="docker-compose-linux-x86_64"
+          DC_URL="https://github.com/docker/compose/releases/download/${DC_VERSION}/${DC_ASSET}"
           mkdir -p ~/.docker/cli-plugins/
-          curl -SL https://github.com/docker/compose/releases/download/v2.24.6/docker-compose-linux-x86_64 \
-            -o ~/.docker/cli-plugins/docker-compose
+          curl -SL "${DC_URL}" -o /tmp/docker-compose
+          curl -SL "${DC_URL}.sha256" -o /tmp/docker-compose.sha256
+          echo "$(cut -d' ' -f1 /tmp/docker-compose.sha256)  /tmp/docker-compose" | sha256sum -c -
+          mv /tmp/docker-compose ~/.docker/cli-plugins/docker-compose
           chmod +x ~/.docker/cli-plugins/docker-compose
           docker compose version
 
