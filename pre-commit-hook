@@ -16,4 +16,4 @@ export DOCKER_BUILDKIT=1
 docker build --build-arg GITHUB_TOKEN=${GITHUB_TOKEN} \
   --secret id=jfrog_read_user,env=JFROG_READ_USER \
   --secret id=jfrog_read_token,env=JFROG_READ_TOKEN \
-  -f ./pre-commit.Dockerfile -t pre-commit-patientmatchingservice . && docker run --rm --name pre-commit-run-patientmatchingservice -e PRE_COMMIT_ALL_FILES=$PRE_COMMIT_ALL_FILES -v pre-commit:/.cache/pre-commit:delegated -v $(pwd)/:/sourcecode pre-commit-patientmatchingservice
+  -f ./pre-commit.Dockerfile -t pre-commit-patientmatchingservice . && docker run --rm --name pre-commit-run-patientmatchingservice --user "$(id -u):$(id -g)" -e PRE_COMMIT_ALL_FILES=$PRE_COMMIT_ALL_FILES -v pre-commit:/.cache/pre-commit:delegated -v $(pwd)/:/sourcecode pre-commit-patientmatchingservice
