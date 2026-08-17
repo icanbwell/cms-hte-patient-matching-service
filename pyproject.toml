@@ -37,7 +37,13 @@ dev = [
     "respx>=0.22.0",
     "types-Authlib>=1.6.0",
     "bandit>=1.8.3",
-    "ruff>=0.11.5",
+    # Pinned exactly (not >=) -- .pre-commit-config.yaml's ruff hooks use
+    # `language: system`, running whatever's in this project's own venv. An
+    # open floor let a JFrog-migration uv.lock regeneration on the sibling
+    # patient-matching repo silently pick up a newer ruff (new lint rules,
+    # hundreds of unrelated findings) -- pinning to what's already locked
+    # avoids bundling an incidental tooling upgrade into this migration.
+    "ruff==0.15.20",
     "types-boto3>=1.40.0",
 ]
 
@@ -47,11 +53,7 @@ version = { file = "VERSION" }
 [[tool.uv.index]]
 name = "jfrog"
 url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/simple"
-explicit = true
-
-[tool.uv.sources]
-# Private packages hosted on JFrog (not available on PyPI)
-# None currently needed for patient_matching_service
+default = true
 
 [tool.pytest.ini_options]
 addopts = "--capture=fd"

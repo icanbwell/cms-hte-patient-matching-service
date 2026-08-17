@@ -9,9 +9,33 @@ on:
     branches: [ main ]
 
 jobs:
+  validate-packages:
+    uses: icanbwell/actions/.github/workflows/validate-pip-packages.yaml@main
+    with:
+      working-directory: .
+    secrets: inherit  # pragma: allowlist secret -- not a literal secret, standard GHA syntax
+
   build_and_test:
-    # The type of runner that the job will run on
-    runs-on: ubuntu-latest
+    needs: [validate-packages]
+    # Was ubuntu-latest (GitHub-hosted) -- switched to the self-hosted `main`
+    # runner pool. The pre-commit/up steps below now pull root-mirror/python,
+    # which needs the services-account ECR login below; that role
+    # (services-k8s-service-account-github-actions-runner) is only reachable
+    # via the self-hosted runners' Kubernetes-service-account-federated
+    # identity, not GitHub's native Actions OIDC -- confirmed by testing on
+    # ubuntu-latest, which failed with "web identity token provided could not
+    # be validated" even with `permissions: id-token: write` set. Every other
+    # already-migrated repo's equivalent job (ats-event-consumer's
+    # checks.yml, this repo's own docker-publish.yml) already runs on `main`
+    # for the same reason.
+    runs-on: main
+    # JFrog creds are needed by both the pre-commit step (builds pre-commit.Dockerfile,
+    # which runs `uv sync` against the now-default JFrog index) and the `up`/`tests` steps
+    # (build the main Dockerfile via docker-compose, whose secrets: block reads these same
+    # env vars).
+    env:
+      JFROG_READ_USER: ${{ secrets.JFROG_READ_USER }}
+      JFROG_READ_TOKEN: ${{ secrets.JFROG_READ_TOKEN }}
 
     steps:
       # Checks-out your repository
@@ -19,6 +43,40 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+
+      # Both the pre-commit step below (builds pre-commit.Dockerfile) and the
+      # `up`/`tests` steps (build the main Dockerfile via docker-compose) FROM
+      # root-mirror/python, which lives in the services account (856965016623)
+      # -- a separate account from wherever this repo's own images publish to,
+      # needing its own role-to-assume rather than any ambient runner credentials.
+      - name: ECR login (services account, for root-mirror base image pulls)
+        uses: ./.github/actions/ecr-login
+
+      # The self-hosted `main` runner image doesn't ship `make` or a modern
+      # Docker Compose CLI plugin -- unlike ubuntu-latest, which has both
+      # preinstalled. Matches the pattern already used by other repos' `main`
+      # runner CI (e.g. ats-event-consumer, helix.providersearch).
+      - name: Install make
+        run: |
+          sudo apt-get update && sudo apt-get install -y make
+          sudo apt-get clean
+
+      # Verified against the release's published sha256 checksum, not just
+      # downloaded and run blind -- same pattern already used by
+      # ats-event-consumer's install-docker-compose action.
+      - name: Install Docker Compose CLI plugin
+        run: |
+          set -eu
+          DC_VERSION=v2.24.6
+          DC_ASSET="docker-compose-linux-x86_64"
+          DC_URL="https://github.com/docker/compose/releases/download/${DC_VERSION}/${DC_ASSET}"
+          mkdir -p ~/.docker/cli-plugins/
+          curl -SL "${DC_URL}" -o /tmp/docker-compose
+          curl -SL "${DC_URL}.sha256" -o /tmp/docker-compose.sha256
+          echo "$(cut -d' ' -f1 /tmp/docker-compose.sha256)  /tmp/docker-compose" | sha256sum -c -
+          mv /tmp/docker-compose ~/.docker/cli-plugins/docker-compose
+          chmod +x ~/.docker/cli-plugins/docker-compose
+          docker compose version
 
       - name: create .env
         run: |
