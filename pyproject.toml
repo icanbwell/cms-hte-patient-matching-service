@@ -53,6 +53,11 @@ version = { file = "VERSION" }
 [[tool.uv.index]]
 name = "jfrog"
 url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/simple"
+# Must be `default = true`, not `explicit = true`. `explicit` only routes
+# packages listed under [tool.uv.sources] -- with nothing mapped there
+# (as this repo had), every dependency silently kept resolving against the
+# public index instead, despite this block's presence. `default` routes
+# everything through JFrog unless a package is overridden elsewhere.
 default = true
 
 [tool.pytest.ini_options]
