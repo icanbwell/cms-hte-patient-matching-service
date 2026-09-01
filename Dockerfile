@@ -57,12 +57,32 @@ RUN --mount=type=secret,id=jfrog_read_user --mount=type=secret,id=jfrog_read_tok
 
 # Validate dependencies against the Root.io vulnerability database (dry-run only).
 # rootio_patcher inspects the venv via `python -m pip list`, but uv-created venvs omit
-# pip -- bootstrap it from the interpreter's bundled wheels (no network/auth needed for
-# that part), then upgrade pip itself through the JFrog index so the inventory is
-# accurate. pip is only here to satisfy that inventory and is never copied to a runtime
-# image (only /opt/venv is copied forward).
-RUN /opt/venv/bin/python -m ensurepip >/dev/null && \
-    PIP_INDEX_URL=https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/simple /opt/venv/bin/python -m pip install --upgrade pip && \
+# pip -- install it through the JFrog index so the inventory is accurate. pip is only
+# here to satisfy that inventory and is never copied to a runtime image (only /opt/venv
+# is copied forward).
+#
+# Installed with `uv pip install`, NOT `python -m ensurepip`: this base image patches
+# ensurepip._PACKAGE_NAMES to ('rootio_setuptools', 'rootio_pip') but bundles no
+# rootio_setuptools wheel in ensurepip/_bundled/, and the bootstrap installs --no-index
+# --find-links against that same directory -- so the call fails outright ("No matching
+# distribution found for rootio_setuptools") and breaks every build in this repo
+# regardless of diff. It fails at this step, so it reads as a dependency problem when
+# the build actually died before the patcher ran. uv needs no pre-existing pip, so this
+# sidesteps the patched module entirely. Unpinned, matching the previous
+# `--upgrade pip` behaviour (root.io patches specific older pins, not head).
+#
+# Auth via the same UV_INDEX_JFROG_USERNAME/PASSWORD + named `--index jfrog=...` used
+# by the `uv sync` call above (name comes from pyproject.toml's [[tool.uv.index]]),
+# not `https://:$TOKEN@...` interpolated into --index-url: that form puts the token in
+# uv's process arguments, which Aikido flagged on the identical line in
+# bwell-ai-plugin-marketplace#223.
+RUN --mount=type=secret,id=jfrog_read_user --mount=type=secret,id=jfrog_read_token \
+    set -eu; \
+    export UV_INDEX_JFROG_USERNAME="$(cat /run/secrets/jfrog_read_user)"; \
+    export UV_INDEX_JFROG_PASSWORD="$(cat /run/secrets/jfrog_read_token)"; \
+    uv pip install --python /opt/venv/bin/python --no-cache \
+    --index jfrog=https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/simple \
+    pip && \
     ROOTIO_PKG_URL=https://artifacts.bwell.com/artifactory/api \
     ROOTIO_PIP_INDEX_URL=https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/simple \
     rootio_patcher pip remediate --dry-run --python-path=/opt/venv/bin/python
