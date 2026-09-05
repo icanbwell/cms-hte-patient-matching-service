@@ -13,6 +13,8 @@ docker.env
 dist/
 build/
 *.egg-info/
+__pycache__/
+*.pyc
 !.idea/fileTemplates/
 
 # Test data

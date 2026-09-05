@@ -1,7 +1,7 @@
 
 bwell:
   environment: "prod-ue1"
-  iamRole: arn:aws:iam::400686897767:role/prod-irsa-complaint-parser
+  iamRole: arn:aws:iam::400686897767:role/prod-irsa-patient_matching_service
   ingress:
     internal:
       enabled: true
