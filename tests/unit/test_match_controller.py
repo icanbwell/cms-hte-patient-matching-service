@@ -1,5 +1,5 @@
 from typing import Any
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock
 
 import pytest
 from patient_matching.api.service import MatchResponse
@@ -43,8 +43,8 @@ class TestExtractPatient:
 
 
 class TestMatch:
-    def test_calls_service_and_builds_bundle(self) -> None:
-        service = MagicMock()
+    async def test_calls_service_and_builds_bundle(self) -> None:
+        service = AsyncMock()
         service.match_patient.return_value = MatchResponse(
             outcome="match",
             matched_patient_ids=["p1"],
@@ -58,7 +58,7 @@ class TestMatch:
         controller = MatchController(service=service)
 
         patient = {"resourceType": "Patient", "id": "query"}
-        bundle = controller.match(_parameters(patient))
+        bundle = await controller.match(_parameters(patient))
 
         service.match_patient.assert_called_once_with(patient)
         assert bundle["resourceType"] == "Bundle"
@@ -71,21 +71,21 @@ class TestMatch:
         assert extensions["https://icanbwell.com/patient_match/outcome"] == "match"
         assert extensions["https://icanbwell.com/patient_match/matched_rule_id"] == "01"
 
-    def test_no_match_builds_empty_bundle(self) -> None:
-        service = MagicMock()
+    async def test_no_match_builds_empty_bundle(self) -> None:
+        service = AsyncMock()
         service.match_patient.return_value = MatchResponse(outcome="no_match")
         controller = MatchController(service=service)
 
-        bundle = controller.match(_parameters({"resourceType": "Patient"}))
+        bundle = await controller.match(_parameters({"resourceType": "Patient"}))
 
         assert bundle["total"] == 0
         assert "entry" not in bundle
 
-    def test_invalid_request_never_calls_service(self) -> None:
-        service = MagicMock()
+    async def test_invalid_request_never_calls_service(self) -> None:
+        service = AsyncMock()
         controller = MatchController(service=service)
 
         with pytest.raises(InvalidMatchRequest):
-            controller.match({"resourceType": "Patient"})
+            await controller.match({"resourceType": "Patient"})
 
         service.match_patient.assert_not_called()

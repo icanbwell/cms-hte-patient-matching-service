@@ -32,7 +32,7 @@ class MatchController:
     def __init__(self, *, service: PatientMatcherService) -> None:
         self._service = service
 
-    def match(self, parameter_json: dict[str, Any]) -> dict[str, Any]:
+    async def match(self, parameter_json: dict[str, Any]) -> dict[str, Any]:
         """Run a FHIR $match request and return a FHIR searchset Bundle.
 
         Raises:
@@ -40,7 +40,7 @@ class MatchController:
                 Parameters payload containing a Patient resource.
         """
         patient = self._extract_patient(parameter_json)
-        result = self._service.match_patient(patient)
+        result = await self._service.match_patient(patient)
         return self._build_bundle(result)
 
     @staticmethod

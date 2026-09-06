@@ -43,7 +43,7 @@ logger = logging.getLogger(__name__)
 logging.getLogger("uvicorn.access").addFilter(EndpointFilter(path="/health"))
 
 
-def _build_cache() -> CacheBackend:
+async def _build_cache() -> CacheBackend:
     """Build the DuckDB candidate cache, populated from a FHIR server if configured."""
     cache = DuckDBCache(database=os.getenv("CACHE_DATABASE_PATH", ":memory:"))
 
@@ -77,7 +77,7 @@ def _build_cache() -> CacheBackend:
         ),
     )
     logger.info("Building patient cache from FHIR server %s", fhir_base_url)
-    counts = cache_manager.build_cache()
+    counts = await cache_manager.build_cache()
     logger.info("Patient cache built: %s", counts)
     cache_manager.start_scheduled_refresh()
     return cache
@@ -109,7 +109,7 @@ def _build_jwt_validator() -> JWTValidator | None:
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     logger.info("Starting up patient_matching_service...")
 
-    cache = _build_cache()
+    cache = await _build_cache()
     service = PatientMatcherService(cache=cache, config=ServiceConfig())
     app.state.match_controller = MatchController(service=service)
 
@@ -118,7 +118,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     yield
 
     logger.info("Shutting down patient_matching_service...")
-    cache.close()
+    await cache.close()
 
 
 app = FastAPI(lifespan=lifespan)
@@ -157,7 +157,7 @@ async def match(
     controller: MatchController = Depends(get_match_controller),
 ) -> JSONResponse:
     data: dict[str, Any] = await request.json()
-    bundle = controller.match(data)
+    bundle = await controller.match(data)
     return JSONResponse(bundle, status_code=200, media_type="application/fhir+json")
 
 

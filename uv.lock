@@ -443,13 +443,12 @@ wheels = [
 
 [[package]]
 name = "cms-hte-patient-matching"
-version = "0.0.3"
+version = "0.0.5"
 source = { registry = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/simple" }
 dependencies = [
     { name = "apscheduler" },
     { name = "cryptography" },
     { name = "duckdb" },
-    { name = "fastapi" },
     { name = "fhirschemapy" },
     { name = "httpx" },
     { name = "nicknames" },
@@ -460,11 +459,10 @@ dependencies = [
     { name = "text-unidecode" },
     { name = "usaddress" },
     { name = "usaddress-scourgify" },
-    { name = "uvicorn" },
 ]
-sdist = { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/c9/18/7fb668c0aa2ec7d15a96cf76e2cf0333c312c7df20639e84eaa44533c978/cms_hte_patient_matching-0.0.3.tar.gz", hash = "sha256:d87d6b4fddedcb015e740fcd9a673dcc8dc01587b6508cc74cd82b6ceaa3bb4c", size = 83789, upload-time = "2026-09-06T21:10:52.333Z" }
+sdist = { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/47/71/118ef93d4d62b9d02e1eb2cc3b02aece160c14ae19f470aa58a48425449e/cms_hte_patient_matching-0.0.5.tar.gz", hash = "sha256:cbe40eb57f5b954093318e472f0d3b9fbe445f3962b4f5ff29a6b51bb431e0e0", size = 86451, upload-time = "2026-09-06T23:47:26.68Z" }
 wheels = [
-    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/28/02/b1236d9ea8822859eb1ddea6552c6d97c5ec00978a97307f161adb4c8534/cms_hte_patient_matching-0.0.3-py3-none-any.whl", hash = "sha256:4be2a74914bdbacead9b0bca1381e9e8368d8dff268cfaaae8404032a8bec283", size = 99681, upload-time = "2026-09-06T21:10:50.952Z" },
+    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/2d/cd/1a78e4d683ca44ae53f64767b4a97b004ea3dbc1246fa84ef7fdc37f572f/cms_hte_patient_matching-0.0.5-py3-none-any.whl", hash = "sha256:ecb80b39c05a5b2486cb7a6d349c942505821d36c02bfd031c812e8f5a8d3d5b", size = 103246, upload-time = "2026-09-06T23:47:25.39Z" },
 ]
 
 [[package]]
@@ -977,7 +975,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "cms-hte-patient-matching", specifier = ">=0.0.3" },
+    { name = "cms-hte-patient-matching", specifier = ">=0.0.5" },
     { name = "ddtrace", specifier = ">=2.6.3" },
     { name = "fastapi", specifier = ">=0.110.0" },
     { name = "httpx", specifier = ">=0.27.2" },

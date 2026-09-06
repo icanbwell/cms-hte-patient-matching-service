@@ -12,7 +12,7 @@ set in the test environment) -- app is a module-level singleton, so the
 override is undone in a finally block to avoid leaking into other tests.
 """
 
-from collections.abc import Generator
+from collections.abc import AsyncGenerator
 from typing import Any
 
 import pytest
@@ -41,9 +41,9 @@ _KNOWN_PATIENT: dict[str, Any] = {
 }
 
 
-def _seeded_cache() -> DuckDBCache:
+async def _seeded_cache() -> DuckDBCache:
     cache = DuckDBCache(database=":memory:")
-    cache.upsert_patients(
+    await cache.upsert_patients(
         [
             CachedPatient(
                 patient_id="p1",
@@ -62,7 +62,7 @@ def _seeded_cache() -> DuckDBCache:
 
 
 @pytest.fixture
-def client() -> Generator[TestClient, None, None]:
+async def client() -> AsyncGenerator[TestClient, None]:
     # NOT `= dict`: FastAPI's dependency-override resolution introspects the
     # override callable's own signature (to resolve *its* sub-dependencies),
     # and inspect.signature() raises ValueError on the builtin `dict` type.
@@ -70,14 +70,14 @@ def client() -> Generator[TestClient, None, None]:
     # Python, but that equivalence breaks here -- ignore that suggestion.
     app.dependency_overrides[verify_jwt] = lambda: {}  # noqa: PIE807
     with TestClient(app) as test_client:
-        cache = _seeded_cache()
+        cache = await _seeded_cache()
         app.state.match_controller = MatchController(
             service=PatientMatcherService(cache=cache)
         )
         try:
             yield test_client
         finally:
-            cache.close()
+            await cache.close()
     del app.dependency_overrides[verify_jwt]
 
 
