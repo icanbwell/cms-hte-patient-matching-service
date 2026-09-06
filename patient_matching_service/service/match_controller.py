@@ -61,13 +61,11 @@ class MatchController:
             )
 
         for param in parameter_json.get("parameter", []) or []:
-            if param.get("name") == "resource":
-                resource = param.get("resource")
-                if (
-                    isinstance(resource, dict)
-                    and resource.get("resourceType") == "Patient"
-                ):
-                    return resource
+            if param.get("name") != "resource":
+                continue
+            resource = param.get("resource")
+            if isinstance(resource, dict) and resource.get("resourceType") == "Patient":
+                return resource
 
         raise InvalidMatchRequest(
             "Parameters resource must contain a 'resource' parameter "
