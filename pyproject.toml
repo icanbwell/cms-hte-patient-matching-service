@@ -43,7 +43,7 @@ dev = [
     # patient-matching repo silently pick up a newer ruff (new lint rules,
     # hundreds of unrelated findings) -- pinning to what's already locked
     # avoids bundling an incidental tooling upgrade into this migration.
-    "ruff==0.15.20",
+    "ruff==0.16.5",
     "types-boto3>=1.40.0",
 ]
 
