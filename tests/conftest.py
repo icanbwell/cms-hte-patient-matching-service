@@ -1,25 +1,25 @@
-from typing import AsyncGenerator, Generator, Any
+from collections.abc import AsyncGenerator, Generator
+from typing import Any
 
 import httpx
+import pytest
 from asgi_lifespan import LifespanManager
+from fastapi.testclient import TestClient
 from httpx import AsyncClient
 
-from tests.common import create_async_client_unopened
-
-
-import pytest
-from fastapi.testclient import TestClient
-
 from patient_matching_service.api import app
+from tests.common import create_async_client_unopened
 
 
 @pytest.fixture
 async def async_client() -> AsyncGenerator[httpx.AsyncClient, None]:
-    async with LifespanManager(app) as manager:
-        async with httpx.AsyncClient(
+    async with (
+        LifespanManager(app) as manager,
+        httpx.AsyncClient(
             transport=httpx.ASGITransport(app=manager.app), base_url="http://test"
-        ) as client:
-            yield client
+        ) as client,
+    ):
+        yield client
 
 
 @pytest.fixture(scope="function")

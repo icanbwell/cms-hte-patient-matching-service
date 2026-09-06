@@ -32,7 +32,7 @@ dev = [
     # patient-matching repo silently pick up a newer ruff (new lint rules,
     # hundreds of unrelated findings) -- pinning to what's already locked
     # avoids bundling an incidental tooling upgrade into this migration.
-    "ruff==0.15.20",
+    "ruff==0.16.5",
 ]
 
 [tool.setuptools.dynamic]
@@ -76,3 +76,11 @@ ignore_missing_imports = true
 [tool.ruff]
 line-length = 88
 exclude = ["venv/"]
+
+[tool.ruff.lint]
+# B008 (flake8-bugbear): "no function calls in argument defaults" -- FastAPI's
+# entire Depends()-based DI system is built on exactly this pattern, so this
+# rule is a standing false positive for any FastAPI route/dependency. See
+# https://fastapi.tiangolo.com/tutorial/dependencies/ -- ruff's own docs
+# recommend disabling B008 for FastAPI codebases.
+ignore = ["B008"]

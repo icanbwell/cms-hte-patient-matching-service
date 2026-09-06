@@ -12,7 +12,8 @@ set in the test environment) -- app is a module-level singleton, so the
 override is undone in a finally block to avoid leaking into other tests.
 """
 
-from typing import Any, Dict, Generator
+from collections.abc import Generator
+from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
@@ -24,7 +25,7 @@ from patient_matching_service.api import app
 from patient_matching_service.deps import verify_jwt
 from patient_matching_service.service.match_controller import MatchController
 
-_KNOWN_PATIENT: Dict[str, Any] = {
+_KNOWN_PATIENT: dict[str, Any] = {
     "resourceType": "Patient",
     "id": "p1",
     "name": [{"family": "smith", "given": ["john"]}],
@@ -62,7 +63,12 @@ def _seeded_cache() -> DuckDBCache:
 
 @pytest.fixture
 def client() -> Generator[TestClient, None, None]:
-    app.dependency_overrides[verify_jwt] = lambda: {}
+    # NOT `= dict`: FastAPI's dependency-override resolution introspects the
+    # override callable's own signature (to resolve *its* sub-dependencies),
+    # and inspect.signature() raises ValueError on the builtin `dict` type.
+    # ruff's PIE807 suggests `dict` as "equivalent" to `lambda: {}` in general
+    # Python, but that equivalence breaks here -- ignore that suggestion.
+    app.dependency_overrides[verify_jwt] = lambda: {}  # noqa: PIE807
     with TestClient(app) as test_client:
         cache = _seeded_cache()
         app.state.match_controller = MatchController(
@@ -75,7 +81,7 @@ def client() -> Generator[TestClient, None, None]:
     del app.dependency_overrides[verify_jwt]
 
 
-def _parameters(patient: Dict[str, Any]) -> Dict[str, Any]:
+def _parameters(patient: dict[str, Any]) -> dict[str, Any]:
     return {
         "resourceType": "Parameters",
         "parameter": [{"name": "resource", "resource": patient}],

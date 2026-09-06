@@ -40,7 +40,7 @@ jobs:
     steps:
       # Checks-out your repository
       - uses: actions/checkout@v5
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.12'
 
@@ -104,7 +104,7 @@ jobs:
           docker compose run --rm --name patient-matching-service-tests -v ${{ github.workspace }}/reports:/reports dev pytest . --tb=auto --junitxml=/reports/test-results.xml
 
       - name: Upload pytest test results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: pytest-results
           path: ${{ github.workspace }}/reports/**/*.xml
@@ -118,7 +118,7 @@ jobs:
       # Publish all test results in the GitHub UI
       - name: Surface failing tests
         if: always()
-        uses: pmeier/pytest-results-action@20b595761ba9bf89e115e875f8bc863f913bc8ad # https://github.com/pmeier/pytest-results-action
+        uses: pmeier/pytest-results-action@fdc7f18d9934e38aca411ca9557e6577bd25ca9c # https://github.com/pmeier/pytest-results-action
         with:
           # A list of JUnit XML files, directories containing the former, and wildcard
           # patterns to process.

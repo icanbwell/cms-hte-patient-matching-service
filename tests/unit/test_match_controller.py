@@ -1,4 +1,4 @@
-from typing import Any, Dict
+from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
@@ -10,7 +10,7 @@ from patient_matching_service.service.match_controller import (
 )
 
 
-def _parameters(patient: Dict[str, Any]) -> Dict[str, Any]:
+def _parameters(patient: dict[str, Any]) -> dict[str, Any]:
     return {
         "resourceType": "Parameters",
         "parameter": [{"name": "resource", "resource": patient}],

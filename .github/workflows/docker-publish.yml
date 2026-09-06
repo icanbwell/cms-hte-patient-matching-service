@@ -164,7 +164,7 @@ jobs:
           fi
 
       - name: Download AMD64 image artifact
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: amd64-image-${{ steps.vars.outputs.tag }}
           path: /tmp
@@ -200,7 +200,7 @@ jobs:
           fi
 
       - name: Download ARM64 image artifact
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: arm64-image-${{ steps.vars.outputs.tag }}
           path: /tmp

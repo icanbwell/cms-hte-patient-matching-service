@@ -14,7 +14,7 @@ end-to-end via its configured CacheBackend.
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from fastapi import Request
 from patient_matching.api.service import MatchResponse, PatientMatcherService
@@ -32,7 +32,7 @@ class MatchController:
     def __init__(self, *, service: PatientMatcherService) -> None:
         self._service = service
 
-    def match(self, parameter_json: Dict[str, Any]) -> Dict[str, Any]:
+    def match(self, parameter_json: dict[str, Any]) -> dict[str, Any]:
         """Run a FHIR $match request and return a FHIR searchset Bundle.
 
         Raises:
@@ -44,7 +44,7 @@ class MatchController:
         return self._build_bundle(result)
 
     @staticmethod
-    def _extract_patient(parameter_json: Dict[str, Any]) -> Dict[str, Any]:
+    def _extract_patient(parameter_json: dict[str, Any]) -> dict[str, Any]:
         """Extract the query Patient resource from a FHIR Parameters payload.
 
         Expects the standard FHIR $match request shape:
@@ -75,7 +75,7 @@ class MatchController:
         )
 
     @staticmethod
-    def _build_bundle(result: MatchResponse) -> Dict[str, Any]:
+    def _build_bundle(result: MatchResponse) -> dict[str, Any]:
         """Build a FHIR searchset Bundle from a MatchResponse.
 
         Each entry carries the match outcome/rule/confidence as a
@@ -83,10 +83,10 @@ class MatchController:
         *why* a candidate matched (CMS's audit-trail requirement) without
         parsing rule_evaluations_summary separately.
         """
-        entries: List[Dict[str, Any]] = []
+        entries: list[dict[str, Any]] = []
         for patient_dict in result.matched_patients:
             patient_id = patient_dict.get("id", "")
-            entry: Dict[str, Any] = {
+            entry: dict[str, Any] = {
                 "resource": patient_dict,
                 "search": {
                     "mode": "match",
@@ -107,7 +107,7 @@ class MatchController:
                 entry["fullUrl"] = f"Patient/{patient_id}"
             entries.append(entry)
 
-        bundle: Dict[str, Any] = {
+        bundle: dict[str, Any] = {
             "resourceType": "Bundle",
             "type": "searchset",
             "total": len(entries),
@@ -119,7 +119,7 @@ class MatchController:
 
 def get_match_controller(request: Request) -> MatchController:
     """FastAPI dependency: retrieve the MatchController from app.state."""
-    controller: Optional[MatchController] = getattr(
+    controller: MatchController | None = getattr(
         request.app.state, "match_controller", None
     )
     if controller is None:

@@ -12,20 +12,20 @@ from __future__ import annotations
 
 import logging
 import os
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from typing import Any, AsyncGenerator, Dict
+from typing import Any
 
 from fastapi import APIRouter, Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from prometheus_fastapi_instrumentator import Instrumentator
-
 from patient_matching.api.service import PatientMatcherService, ServiceConfig
 from patient_matching.cache.cache_backend import CacheBackend
 from patient_matching.cache.cache_manager import CacheManager, CacheManagerConfig
 from patient_matching.cache.duckdb_cache import DuckDBCache
 from patient_matching.fhir_client.auth import ClientCredentialsAuth
 from patient_matching.fhir_client.client import FhirClient, FhirClientConfig
+from prometheus_fastapi_instrumentator import Instrumentator
 
 from patient_matching_service.deps import verify_jwt
 from patient_matching_service.filters.endpoint_filter import EndpointFilter
@@ -144,7 +144,7 @@ async def _invalid_match_request_handler(
 
 
 @app.get("/health")
-async def health() -> Dict[str, str]:
+async def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
@@ -156,7 +156,7 @@ async def match(
     request: Request,
     controller: MatchController = Depends(get_match_controller),
 ) -> JSONResponse:
-    data: Dict[str, Any] = await request.json()
+    data: dict[str, Any] = await request.json()
     bundle = controller.match(data)
     return JSONResponse(bundle, status_code=200, media_type="application/fhir+json")
 
