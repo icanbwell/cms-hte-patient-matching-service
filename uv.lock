@@ -443,7 +443,7 @@ wheels = [
 
 [[package]]
 name = "cms-hte-patient-matching"
-version = "0.0.2"
+version = "0.0.3"
 source = { registry = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/simple" }
 dependencies = [
     { name = "apscheduler" },
@@ -462,9 +462,9 @@ dependencies = [
     { name = "usaddress-scourgify" },
     { name = "uvicorn" },
 ]
-sdist = { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/ea/e2/04b2225f3ef97e9c6c5b2c39c689fd58fc237c61a2023ea6be6105e8a684/cms_hte_patient_matching-0.0.2.tar.gz", hash = "sha256:510c9995b0080716e902fa0ce2b135e7b9f593c9d0bc45a54f1648e305d899e7", size = 83782, upload-time = "2026-09-05T00:58:17.11Z" }
+sdist = { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/c9/18/7fb668c0aa2ec7d15a96cf76e2cf0333c312c7df20639e84eaa44533c978/cms_hte_patient_matching-0.0.3.tar.gz", hash = "sha256:d87d6b4fddedcb015e740fcd9a673dcc8dc01587b6508cc74cd82b6ceaa3bb4c", size = 83789, upload-time = "2026-09-06T21:10:52.333Z" }
 wheels = [
-    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/21/02/61c0e34fd97209df214c134eb7b7adf907cf2be859250054a759820b3b4a/cms_hte_patient_matching-0.0.2-py3-none-any.whl", hash = "sha256:a51e9ad088de98b1d070db605a147b06b56b8dcefd5cedb67be174e5cc0bb150", size = 99679, upload-time = "2026-09-05T00:58:15.722Z" },
+    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/28/02/b1236d9ea8822859eb1ddea6552c6d97c5ec00978a97307f161adb4c8534/cms_hte_patient_matching-0.0.3-py3-none-any.whl", hash = "sha256:4be2a74914bdbacead9b0bca1381e9e8368d8dff268cfaaae8404032a8bec283", size = 99681, upload-time = "2026-09-06T21:10:50.952Z" },
 ]
 
 [[package]]
@@ -977,7 +977,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "cms-hte-patient-matching", specifier = ">=0.0.2" },
+    { name = "cms-hte-patient-matching", specifier = ">=0.0.3" },
     { name = "ddtrace", specifier = ">=2.6.3" },
     { name = "fastapi", specifier = ">=0.110.0" },
     { name = "httpx", specifier = ">=0.27.2" },
