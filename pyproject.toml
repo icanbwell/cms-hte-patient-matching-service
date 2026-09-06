@@ -26,13 +26,7 @@ dev = [
     "black>=24.8.0",
     "asgi-lifespan>=2.1.0",
     "bandit>=1.8.3",
-    # Pinned exactly (not >=) -- .pre-commit-config.yaml's ruff hooks use
-    # `language: system`, running whatever's in this project's own venv. An
-    # open floor let a JFrog-migration uv.lock regeneration on the sibling
-    # patient-matching repo silently pick up a newer ruff (new lint rules,
-    # hundreds of unrelated findings) -- pinning to what's already locked
-    # avoids bundling an incidental tooling upgrade into this migration.
-    "ruff==0.16.5",
+    "ruff>=0.16.5",
 ]
 
 [tool.setuptools.dynamic]

@@ -997,7 +997,7 @@ dev = [
     { name = "pre-commit", specifier = ">=3.8.0" },
     { name = "pytest", specifier = ">=8.3.3" },
     { name = "pytest-asyncio", specifier = ">=0.24.0" },
-    { name = "ruff", specifier = "==0.16.5" },
+    { name = "ruff", specifier = ">=0.16.5" },
     { name = "wheel", specifier = ">=0.43.0" },
 ]
 
