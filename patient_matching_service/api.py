@@ -10,6 +10,7 @@ bug, so the service stays deployable/testable while that's decided.
 
 from __future__ import annotations
 
+import json
 import logging
 import os
 from collections.abc import AsyncGenerator
@@ -156,7 +157,10 @@ async def match(
     request: Request,
     controller: MatchController = Depends(get_match_controller),
 ) -> JSONResponse:
-    data: dict[str, Any] = await request.json()
+    try:
+        data: dict[str, Any] = await request.json()
+    except json.JSONDecodeError as exc:
+        raise InvalidMatchRequest(f"Request body is not valid JSON: {exc}") from exc
     bundle = await controller.match(data)
     return JSONResponse(bundle, status_code=200, media_type="application/fhir+json")
 

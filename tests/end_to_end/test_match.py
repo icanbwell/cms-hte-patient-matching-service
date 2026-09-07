@@ -131,6 +131,15 @@ def test_invalid_request_returns_400(client: TestClient) -> None:
     assert response.status_code == 400
 
 
+def test_malformed_json_body_returns_400(client: TestClient) -> None:
+    response = client.post(
+        "/Patient/$match",
+        content=b"not json",
+        headers={"content-type": "application/json"},
+    )
+    assert response.status_code == 400
+
+
 def test_match_without_auth_override_is_rejected() -> None:
     """Sanity check that the route really is auth-gated (not just that our
     override happens to work) -- run without the client fixture's override."""
