@@ -1,6 +1,9 @@
 # patient_matching_service
 
-To run it locally:
+FastAPI service wrapping [`cms-hte-patient-matching`](https://pypi.org/project/cms-hte-patient-matching/)
+(the CMS Patient Matching Proposal's deterministic Table 2 rules engine) as a FHIR `$match` HTTP
+endpoint. See [`docs/TECH_DESIGN.md`](docs/TECH_DESIGN.md) for the full architecture and open
+questions.
 
 ## Prerequisites
 
@@ -10,58 +13,50 @@ To run it locally:
 
 ## Setup
 
-Private packages are hosted on JFrog. Set `JFROG_READ_TOKEN` in your environment before building:
+Private/proxied packages resolve through bWell's JFrog index. Set `JFROG_READ_TOKEN` in your
+environment before building:
 
 ```bash
+export JFROG_READ_USER="you@bwell.zone"
 export JFROG_READ_TOKEN="<your-jfrog-token>"
 ```
 
-Add it to `~/.zshrc` or `~/.bashrc` to persist across sessions.
+Add these to `~/.zshrc` or `~/.bashrc` to persist across sessions.
 
 ```bash
-git clone
+git clone <this-repo>
 make init
 make up
 ```
 
-Then navigate to: http://localhost:5050/graphql
+The service listens on `http://localhost:5050`.
 
-1. Simple query
+## Configuration
 
-```graphql
-query getProviders {
-    providers(
-        query_id: "foo"
-    ) {
-        total_count
-        results {
-            result_id
-        }
-    }
-}
+| Variable | Purpose |
+|---|---|
+| `FHIR_BASE_URL` | FHIR server the candidate cache is built from. **Unset by default** -- the service still starts, but the cache stays empty and every `$match` request returns `no_match` until this is set. |
+| `FHIR_TOKEN_URL`, `FHIR_CLIENT_ID`, `FHIR_CLIENT_SECRET` | OAuth2 client-credentials auth for the FHIR server, if required. |
+| `CACHE_DATABASE_PATH` | DuckDB cache path. Defaults to `:memory:`. |
+| `CACHE_REFRESH_INTERVAL_MINUTES` | How often the cache re-syncs from the FHIR server. Defaults to `60`. |
+| `AUTH_JWK_URLS` | Comma-separated JWKS endpoint(s) for bearer-token auth on `/Patient/$match`. **Unset by default** -- fails closed (every request to that route returns 401), not open. |
+| `AUTH_EXPECTED_CIDS`, `AUTH_CID_CHECK_ISSUER`, `AUTH_JWKS_CACHE_TTL_SECONDS` | Optional client-id allow-list and JWKS cache tuning. |
+| `LOG_LEVEL` | Root logger level. Defaults to `INFO`. |
 
+## API
+
+- `POST /Patient/$match` -- FHIR `$match` operation. Accepts a `Parameters` resource containing a
+  query `Patient`; returns a `searchset` `Bundle` of matched candidates, each entry carrying the
+  match outcome and matched rule ID as extensions. Requires a bearer JWT (see `AUTH_JWK_URLS`
+  above).
+- `GET /health` -- unauthenticated liveness/readiness probe target.
+
+## Running tests
+
+```bash
+make tests
 ```
 
-## Writing end-to-end tests
-
-1. Right-click the "end_to_end" folder in Pycharm and choose New "End to End Test"
-2. Type in name of the test
-3. Create a graphql folder and create a query.gql file in there and paste in the graphql query (You can get this from
-   the PSS graphql testing UI: `https://provider-search.dev.bwell.zone/graphql`)
-4. Create an expected folder and store a .json file in there with what you expect as the result.  (You can start with an
-   existing result from PSS and edit it to be what you expect)
-5. That's it. Now when you run the test, it will create an index, run your graphql query and compare the result with
-   your expected result
-
-You can look at existing end-to-end tests for more info.
-
-#### Multi scenario end to end tests
-
-The test framework supports testing multiple scenarios per end to end test. This is done by adding files to the graphql
-and expected directories that have the same name. This is helpful when you want to test
-multiple test cases. For example testing filtering by distance using multiple values for distance,
-[that example is here](https://github.com/icanbwell/helix.providersearch/tree/main/tests/end_to_end/test_filter_by_distance)
-.
-
-## Correct workflow
-Verify that the workflow under `.github/workflows/docker-publish.yml` under env.IMAGE_NAME matches the container_name in docker-compose.yml. Also, you will need to create an ECR in AWS and copy the URI to the REPOSITORY_URL variable in the same file.
+Unit tests (`tests/unit/`) mock `PatientMatcherService` and exercise only this service's
+FHIR-parsing/response-building logic. End-to-end tests (`tests/end_to_end/`) run the real
+matching engine against an in-memory `DuckDBCache` seeded with fixture patients.
