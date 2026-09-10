@@ -16,3 +16,9 @@ bwell:
       enabled: false
 
   env:
+
+otel:
+  enabled: true
+  autoInstrumentation:
+    enabled: true
+    language: python

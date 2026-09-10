@@ -187,15 +187,6 @@ wheels = [
 ]
 
 [[package]]
-name = "bytecode"
-version = "0.18.1"
-source = { registry = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/simple" }
-sdist = { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/27/8f/7d12c539869a5cbd801d550b86cc0f030ecaeb12f57f8b3ff19f2d2a184c/bytecode-0.18.1.tar.gz", hash = "sha256:d9564f1565fe1ae6a1173e544ef43a85f093e83997ef45af65d0d250eb48d7a1", size = 104631, upload-time = "2026-06-03T14:17:59.115Z" }
-wheels = [
-    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/d9/ef/6a629424ec08adc3819ddfd7ec0a710361eaa29d1e5fffb4e02f074be5c9/bytecode-0.18.1-py3-none-any.whl", hash = "sha256:9535bfdd665260b2888ec4121569e3ca5106965a7fedbb6de6ba1bafebc5c7d7", size = 42868, upload-time = "2026-06-03T14:17:57.654Z" },
-]
-
-[[package]]
 name = "certifi"
 version = "2026.7.22"
 source = { registry = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/simple" }
@@ -525,51 +516,6 @@ wheels = [
 ]
 
 [[package]]
-name = "ddtrace"
-version = "4.13.0"
-source = { registry = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/simple" }
-dependencies = [
-    { name = "bytecode" },
-    { name = "envier" },
-    { name = "opentelemetry-api" },
-    { name = "wrapt" },
-]
-sdist = { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/1f/e2/ba86ee967e91da871065e89f97327c86fa341a3d41b3b95ef8d108437ae2/ddtrace-4.13.0.tar.gz", hash = "sha256:abb13f0dad32b1f8899e078ed7e05669240ea59700269e2216507954d65afef2", size = 2605466, upload-time = "2026-08-11T16:05:52.662Z" }
-wheels = [
-    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/5d/47/2507be71ebc5c6ab0a49b16b4ea3de3e95d193462e7299bb8cc14e3e533c/ddtrace-4.13.0-cp312-cp312-macosx_14_0_arm64.whl", hash = "sha256:68030dee3823ebc1966aa19574a22455d779f7eb86a8dc6ba81932709e5d31a6", size = 7416955, upload-time = "2026-08-11T16:03:57.031Z" },
-    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/d8/69/ce9b8194d5b58a95cbb40ce0756c10c9b675b7b78c8f03f15863798f34c6/ddtrace-4.13.0-cp312-cp312-macosx_14_0_x86_64.whl", hash = "sha256:807d5b4fc0b074ea8264a5a829f6b00b097e46558f808286f6df036753de4f05", size = 7755388, upload-time = "2026-08-11T16:03:59.047Z" },
-    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/36/83/ee4a2abda2a053562548ac43b200c307a1cd9d60ff7e972a48744222f4c3/ddtrace-4.13.0-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:33b67e450380ada32312da8424c5a79ce702910991c96d26c23ad332275132f9", size = 8861589, upload-time = "2026-08-11T16:04:01.501Z" },
-    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/c1/1f/06c1d127c1d66e9cffbf9b4f36389204a63bf9b01a2acb7da0990621a150/ddtrace-4.13.0-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:357ccf86735d483c58a95f846cdaa9f8810cd64148921f19d60b35aa47b5cfba", size = 9100237, upload-time = "2026-08-11T16:04:04.22Z" },
-    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/a9/8e/b1f4a790d850814102eb06a891ede9472e5e7394ebf4a923259e49a34aae/ddtrace-4.13.0-cp312-cp312-musllinux_1_2_aarch64.whl", hash = "sha256:35485b85c901838db89bd858cdde87b478a02b4fae335fe74afbe4cf968aef87", size = 9768305, upload-time = "2026-08-11T16:04:06.935Z" },
-    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/30/60/6e8faf33cf3577107dda42827eacb1ed96a1f8607f6123f0b84682998ff4/ddtrace-4.13.0-cp312-cp312-musllinux_1_2_x86_64.whl", hash = "sha256:b0a7f899e39f06372c59b6cf2e223f931829b3f923f6e1efe2e2611008350aa7", size = 10050860, upload-time = "2026-08-11T16:04:09.627Z" },
-    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/f1/68/1a8bdd06570dc4c67481b3e885ccd82c3c20296a8a67a30340ee740c0f2a/ddtrace-4.13.0-cp312-cp312-win32.whl", hash = "sha256:c03e1c522aba6f9c0ef561fb5dc05fe4396d134355b19ee45473fb25359c43f3", size = 6574674, upload-time = "2026-08-11T16:04:12.281Z" },
-    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/85/7e/c69c36556329df7afb567492345e3dedea4174b5534f4c5de531263ab08d/ddtrace-4.13.0-cp312-cp312-win_amd64.whl", hash = "sha256:83fc364be774d9ab0ce9a9bbe73f81f412260942ffbe98413137d34d1402de7d", size = 7192801, upload-time = "2026-08-11T16:04:14.709Z" },
-    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/2f/8b/beac646b73b9380ff71a2a74e7417863537b69201714ddde7685bd2cae20/ddtrace-4.13.0-cp312-cp312-win_arm64.whl", hash = "sha256:be9d54ca34df02ea55c17023be319fcbb8d441b4ace48fa66c24a3650ce83fa9", size = 7201484, upload-time = "2026-08-11T16:04:17.477Z" },
-    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/75/2a/5fef70d1860b390e0ca510c40c74e07d157e15f34bea04244f14921d7703/ddtrace-4.13.0-cp313-cp313-macosx_14_0_arm64.whl", hash = "sha256:b056421b7108fed2a0d2fb8176a14329d797ee1a0c0a0fa78f67627c7bd65a6a", size = 7409753, upload-time = "2026-08-11T16:04:19.848Z" },
-    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/3f/81/75653bb71c0a2ac85398424e55bd9f9aef7bb40593a65fdb05a71b533708/ddtrace-4.13.0-cp313-cp313-macosx_14_0_x86_64.whl", hash = "sha256:0fcdb171ce1c5d20416f56f79d6b20e40e138ae3d042c0ff590aa879ee98d2f6", size = 7748638, upload-time = "2026-08-11T16:04:22.232Z" },
-    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/e7/62/2188d9b77223ac373a4d35f31f9d56c215798d85acea0f060b76391cfd88/ddtrace-4.13.0-cp313-cp313-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:4bf17eb1f375c7c1024fc8e61fdc45331281137b2332a430f5e81e2ea9ba5fa0", size = 8857196, upload-time = "2026-08-11T16:04:24.641Z" },
-    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/78/d5/520dc0648432c2294277cf4211cc474707f572075ae19ea56a486590b0e0/ddtrace-4.13.0-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:c0c714f2bcf802882bf1a5c657bb3814d8e85d459a2e75be81528fdbf9674cf6", size = 9092053, upload-time = "2026-08-11T16:04:27.468Z" },
-    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/40/5e/3f92921decce0cec5e0c8967c867c6fa997752dbf9f1f59fe780dbb02ab0/ddtrace-4.13.0-cp313-cp313-musllinux_1_2_aarch64.whl", hash = "sha256:7ccbdbf2568d23998196123274be2d2a828b6eda4a16ddbc9106f66748a50703", size = 9765044, upload-time = "2026-08-11T16:04:30.377Z" },
-    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/68/09/6e6baa5c2e6d099c54fdc67bc43044fbabd8c1db71158d8b877ec8ab8a7e/ddtrace-4.13.0-cp313-cp313-musllinux_1_2_x86_64.whl", hash = "sha256:3310025a02e24ce65ceafad5e6b4f9b83cb4ca338dc20b6fc30889c73bc63306", size = 10044923, upload-time = "2026-08-11T16:04:33.552Z" },
-    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/e0/c3/c3b23b855f9d780ca1691c93bdb245292e47451da237043f533010030a00/ddtrace-4.13.0-cp313-cp313-win32.whl", hash = "sha256:ef02d85510bab723ae7d3dd3b39c9b1192b0d83588cd26c1a925c1b6be34eb91", size = 6571659, upload-time = "2026-08-11T16:04:36.523Z" },
-    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/6f/31/2df9c6646f5308245eda0c35df263493206c4ec46261cd92cf89d7724f6f/ddtrace-4.13.0-cp313-cp313-win_amd64.whl", hash = "sha256:54e300be73e7429bcfb3b83e2e35276839f4df6fab95c96d78d310fd60f1541b", size = 7189846, upload-time = "2026-08-11T16:04:39.055Z" },
-    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/d1/bc/01b038ca7a4244f001b09d399b1f57efab459d7fe4b98eea7505463b50eb/ddtrace-4.13.0-cp313-cp313-win_arm64.whl", hash = "sha256:f2c550e9be97532421111d3878df1ac0ad7540f51b9208d49c5cb91d36d83144", size = 7198117, upload-time = "2026-08-11T16:04:41.815Z" },
-    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/7f/cb/9711dc13ace08954fea8be5c92addcb98a7c9b3403cc030f087858b1b9f4/ddtrace-4.13.0-cp314-cp314-macosx_14_0_arm64.whl", hash = "sha256:adcceec7b1c34ef6e98b7ecf14fb2912a25bac977cb35efdbb8ba0590c941dc3", size = 7414228, upload-time = "2026-08-11T16:04:44.289Z" },
-    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/ad/d8/7fa9bd1b1a12361c7f77e2d44ff0eeed6fffc4f5be906b478987631e67e6/ddtrace-4.13.0-cp314-cp314-macosx_14_0_x86_64.whl", hash = "sha256:f169e959853823f65b404cfb4340e93a446651feed561e4db4abe5b7cc00cfe0", size = 7752215, upload-time = "2026-08-11T16:04:47.172Z" },
-    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/79/47/7abe274b4c18531eab6d4c7bdd55aa2046cfdda02a2fbcd9372cb23cdf70/ddtrace-4.13.0-cp314-cp314-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:62a379d2cc4f5322dfb2b94a63cbb5c15959a4c52438d34533c0ad87b6242036", size = 8866690, upload-time = "2026-08-11T16:04:49.857Z" },
-    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/ee/42/4a482f1a9841d31ee9681c166551c2c937f101337f81416a20272973f98c/ddtrace-4.13.0-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:8677cbc5eadad401e96dfa0ad7c8bcfbc739c8a37341dd08a1ba1d2bc964a612", size = 9095163, upload-time = "2026-08-11T16:04:52.978Z" },
-    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/8d/cc/5de99d321e362c879db892e1cbd9d84f155b7407938c4868042fdc0d7765/ddtrace-4.13.0-cp314-cp314-musllinux_1_2_aarch64.whl", hash = "sha256:9928e32be06ef9e93ef9a0aba22a77b2d70e2c13e480b502b5ca6306104c3737", size = 9776017, upload-time = "2026-08-11T16:04:56.162Z" },
-    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/51/70/e60ca97f00f1ee0dc50731e4ddaa27c7b2f75087fa8a7ad91733f75b986b/ddtrace-4.13.0-cp314-cp314-musllinux_1_2_x86_64.whl", hash = "sha256:93eda8a3975a5eb9c005427448aa04b6221ae2e42609a6a339423e4e46e546d5", size = 10050597, upload-time = "2026-08-11T16:04:59.473Z" },
-    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/91/e9/03728555765792b9bfd9f69a141c9624e102860088fc00143127991d8d55/ddtrace-4.13.0-cp314-cp314-win32.whl", hash = "sha256:2e22c2210cbd4d00273fce1150954d1ecd28452f8c4fd6758376c0310566db24", size = 6688796, upload-time = "2026-08-11T16:05:03.205Z" },
-    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/53/f5/c575871abc17aedcb5997a80c88a3455cad15680457443e7ce4baa054c90/ddtrace-4.13.0-cp314-cp314-win_amd64.whl", hash = "sha256:eadd0bf13649da48fa3d240710f0bfa625ddad6dcaf435a573b6e230f82e6eb1", size = 7357396, upload-time = "2026-08-11T16:05:06.77Z" },
-    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/de/12/e6fb967c764f08e529af34f665132fa5c6af190d75e361541f50883b5626/ddtrace-4.13.0-cp314-cp314-win_arm64.whl", hash = "sha256:f8418df19cdae3bbb8f6edaa24364b19175a4a9227d5c492b22596d4a4f6b89d", size = 7391733, upload-time = "2026-08-11T16:05:09.597Z" },
-    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/2b/19/ccd975b06f20653bfe0aa233ffc99c554f298ad8ebce1da7e8b864f1ece7/ddtrace-4.13.0-cp315-cp315-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:06e9ae8760286a351d2123d42476764e2b91d1d41f8e211be193fd20bb319bf2", size = 7371500, upload-time = "2026-08-11T16:05:12.384Z" },
-    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/b9/b1/47769365e12fac5dc4bb236ef4a458d89d422c3ef97dc92bfdd25207b6ee/ddtrace-4.13.0-cp315-cp315-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:82892531576ac441e0f7d6e0d0ce4a6f32eb3047f331aae7ce5e1319ec853a11", size = 7576601, upload-time = "2026-08-11T16:05:15.688Z" },
-    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/5f/e9/cea46653fa6b72179a7152a7f6a5d8d5531c2d85f0143443ead960b88562/ddtrace-4.13.0-cp315-cp315-musllinux_1_2_aarch64.whl", hash = "sha256:fc4f9352ed380bf27da0ffe04a235e261e384387e1d0fc2e104fae35c6c2f9fe", size = 8301877, upload-time = "2026-08-11T16:05:18.768Z" },
-    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/5f/a2/535d0265df84a25b0340148a2731a0c6bdec92191e13a5da2b92ffc4961d/ddtrace-4.13.0-cp315-cp315-musllinux_1_2_x86_64.whl", hash = "sha256:032b810af1def77291ee0a7ca7589d64d14532865d72f9d775db9fe46794108d", size = 8552877, upload-time = "2026-08-11T16:05:21.998Z" },
-]
-
-[[package]]
 name = "distlib"
 version = "0.4.3"
 source = { registry = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/simple" }
@@ -607,15 +553,6 @@ wheels = [
     { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/a1/43/3a5e81d1728f4d234c79bfe385808ee7c04834f7c37a4b5c257459c25614/duckdb-1.5.5-cp314-cp314-manylinux_2_26_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:fbf0f2d48b43c6c304d00463b463c27ead6c4b01c3c1816b750f728decf71afe", size = 21513851, upload-time = "2026-07-22T10:55:07.864Z" },
     { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/91/41/fc7c829172c60ca22485251eab285f4f1a0d87b486a024c726f21471d86e/duckdb-1.5.5-cp314-cp314-win_amd64.whl", hash = "sha256:9dc826c4b50e64f6c4e4d07a3a9cb075ef70ba3899dc43ec5493dc3d7b04b353", size = 13691858, upload-time = "2026-07-22T10:55:11.181Z" },
     { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/e1/2c/95d9216b79e9273689d7ebce125a54503ed0c9bd7da931f0265888e99779/duckdb-1.5.5-cp314-cp314-win_arm64.whl", hash = "sha256:63e48d4b74b15aeacd688976432a7225163df8c226eddeb8536bba2d4d4ff433", size = 14470180, upload-time = "2026-07-22T10:55:14.445Z" },
-]
-
-[[package]]
-name = "envier"
-version = "0.6.1"
-source = { registry = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/simple" }
-sdist = { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/19/e7/4fe4d3f6e21213cea9bcddc36ba60e6ae4003035f9ce8055e6a9f0322ddb/envier-0.6.1.tar.gz", hash = "sha256:3309a01bb3d8850c9e7a31a5166d5a836846db2faecb79b9cb32654dd50ca9f9", size = 10063, upload-time = "2024-10-22T09:56:47.226Z" }
-wheels = [
-    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/56/e9/30493b1cc967f7c07869de4b2ab3929151a58e6bb04495015554d24b61db/envier-0.6.1-py3-none-any.whl", hash = "sha256:73609040a76be48bbcb97074d9969666484aa0de706183a6e9ef773156a8a6a9", size = 10638, upload-time = "2024-10-22T09:56:45.968Z" },
 ]
 
 [[package]]
@@ -915,18 +852,6 @@ wheels = [
 ]
 
 [[package]]
-name = "opentelemetry-api"
-version = "1.44.0"
-source = { registry = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/simple" }
-dependencies = [
-    { name = "typing-extensions" },
-]
-sdist = { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/ee/8b/aa9e2d8b8dfa7c946f7dec5d1f8f6ba8eca062f43509a06bdb5ce93d26c0/opentelemetry_api-1.44.0.tar.gz", hash = "sha256:67647e5e9566edcf421166fdf022b3537f818635daa852b289e34604dc6fb33a", size = 72406, upload-time = "2026-07-16T15:25:32.678Z" }
-wheels = [
-    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/ca/6f/a04e900f465ff3221ccc395522503e2d10e79fa21f2723c8e177aae1e0d1/opentelemetry_api-1.44.0-py3-none-any.whl", hash = "sha256:94b98c893a91b88657eaac1e3ba89618cdb85be6918196705354f34728b2cdef", size = 60018, upload-time = "2026-07-16T15:25:11.657Z" },
-]
-
-[[package]]
 name = "packaging"
 version = "26.3"
 source = { registry = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/simple" }
@@ -950,7 +875,6 @@ version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
     { name = "cms-hte-patient-matching" },
-    { name = "ddtrace" },
     { name = "fastapi" },
     { name = "httpx" },
     { name = "prometheus-fastapi-instrumentator" },
@@ -976,7 +900,6 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "cms-hte-patient-matching", specifier = ">=0.0.5" },
-    { name = "ddtrace", specifier = ">=2.6.3" },
     { name = "fastapi", specifier = ">=0.110.0" },
     { name = "httpx", specifier = ">=0.27.2" },
     { name = "prometheus-fastapi-instrumentator", specifier = ">=7.0.0" },
@@ -1669,70 +1592,6 @@ dependencies = [
 sdist = { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/d0/20/50ed6bdf27dec98b568a8ae25dc599f35baa3d9709f9e83fd1edb56b9a90/wheel-0.48.0.tar.gz", hash = "sha256:94800765601e9171bf5d58d066e640662842bcedcbab982b2c90787a2c987322", size = 66471, upload-time = "2026-08-11T22:02:27.327Z" }
 wheels = [
     { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/2e/29/69cfbb602cd91690c55d38ba9fe53e6a7e76a6fa647bf38f19c138d25449/wheel-0.48.0-py3-none-any.whl", hash = "sha256:3217dcc807155e45db462d7ef2431f5ddda0d7273b700d05a67b271ceb1287ab", size = 33320, upload-time = "2026-08-11T22:02:26.1Z" },
-]
-
-[[package]]
-name = "wrapt"
-version = "2.3.0"
-source = { registry = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/simple" }
-sdist = { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/2b/b0/c1f5a970721f06b85c0cd5142e0ff8fe067708abd779b0c4f4be7d61d09f/wrapt-2.3.0.tar.gz", hash = "sha256:681a2d0eefd721998f90642762b8e75c2159ec531b20ad5e437245ea7b06a107", size = 131509, upload-time = "2026-07-28T06:06:14.895Z" }
-wheels = [
-    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/5b/4a/d17a0fad1bf1c5f2c887ff71fef75654141b0880bff71d157d955b5bec3a/wrapt-2.3.0-cp312-cp312-macosx_10_13_x86_64.whl", hash = "sha256:0a45ffae742ce91a16e11cb6c7cd71e7f9994f3cbd283b962ab093f5c6dcf525", size = 82139, upload-time = "2026-07-28T06:04:35.082Z" },
-    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/6e/55/51b92daaf6defb57f4dc56bdcce985400f75c6984a03ca5e78ccac717028/wrapt-2.3.0-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:69e477046f2237ef0bc6547544ee73008dc764ca26eff44f09e976d221b34d5d", size = 82723, upload-time = "2026-07-28T06:04:36.502Z" },
-    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/28/7f/cfd9bc4b1f5e424eeea83d0493e43f3b1b02707ce8e50c47945873982bd5/wrapt-2.3.0-cp312-cp312-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl", hash = "sha256:5d221a6e6ddd302b8397433184e96b59f259f50024b854db1c411a881586b6b8", size = 172381, upload-time = "2026-07-28T06:04:37.674Z" },
-    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/cb/89/ff7814f6eb6856b479946117d1138a2fbb46cdb6b1f379db359056c69743/wrapt-2.3.0-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:392158c9a7f2ab1b8699418bfc0fe6f83548788c418b27d7bf2019ad3405cebb", size = 174120, upload-time = "2026-07-28T06:04:38.987Z" },
-    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/12/1e/8eded8615d39e3ce81f626937a3a87b280a2a86239a2bf14a4b4bb345034/wrapt-2.3.0-cp312-cp312-manylinux_2_31_riscv64.manylinux_2_39_riscv64.whl", hash = "sha256:e5301c35cf75655eb33498f2bd6ae8703ca19940e3167dc9cdf740c712a39c60", size = 163035, upload-time = "2026-07-28T06:04:40.361Z" },
-    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/35/ea/a0af2d9da62897af2a055484920de05dade30d2ba2c0d65cbdea875d3d8b/wrapt-2.3.0-cp312-cp312-musllinux_1_2_aarch64.whl", hash = "sha256:418f54bb09d1762db02c7009b4051149893af3153a87f92d70356703c11eea02", size = 171887, upload-time = "2026-07-28T06:04:41.614Z" },
-    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/7e/dd/63cd4c864c65ef4906df64bd2d378f4a62b54f28063f282dfb3bf93caead/wrapt-2.3.0-cp312-cp312-musllinux_1_2_riscv64.whl", hash = "sha256:1598becd30f8f2777d18564064eb4f4dbe1ab0e05a8f09786d0ef505ac782bf3", size = 161113, upload-time = "2026-07-28T06:04:42.864Z" },
-    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/ca/ee/82f1fc9e431b5c2c5a6d201aa865dbeae3984c311c6d11a185f0c8367cf6/wrapt-2.3.0-cp312-cp312-musllinux_1_2_x86_64.whl", hash = "sha256:3da470536bf9645143323dd41b32db55c6f4304ad382094c1a1da8a92061e10d", size = 170530, upload-time = "2026-07-28T06:04:44.212Z" },
-    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/37/a5/5dc590e863a419930d988f8b7ca3e75a6befcfb10b6003b3a152f3d5f732/wrapt-2.3.0-cp312-cp312-win32.whl", hash = "sha256:fb8e2e6704a1e0b1b989546c69e2688371ef4a07fa5f61bde3eb6211186f5ac1", size = 78323, upload-time = "2026-07-28T06:04:45.484Z" },
-    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/51/f9/4a6925a07951df56394f7e6ebe14f69f1c5ef9d87aa63e0839acf15aa63a/wrapt-2.3.0-cp312-cp312-win_amd64.whl", hash = "sha256:cdc021cb0b62471d6aac7f2bd92f3b4658073775f9ee7fcd325c511129e7bcc8", size = 81180, upload-time = "2026-07-28T06:04:47.021Z" },
-    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/a8/4f/8b5de0395b2a72216751d41c9861df6facaeb611b619d8810ed2b3b23eb2/wrapt-2.3.0-cp312-cp312-win_arm64.whl", hash = "sha256:67bfe2485f50368c3fcd2275fc1fd100e350d601e0058921a7c82678a465aeab", size = 80155, upload-time = "2026-07-28T06:04:48.373Z" },
-    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/8e/6e/0f88a072483e76b881e3fdcd6b6ffb4a5791002514fe541e72b1b73c859a/wrapt-2.3.0-cp313-cp313-macosx_10_13_x86_64.whl", hash = "sha256:0d3fb71e65b001adfc42684522eeccd9c21d8ba679945abc993439567b66e59f", size = 81960, upload-time = "2026-07-28T06:04:49.622Z" },
-    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/d7/ff/b7e2776e7c294075eb712cc9ef573d1b818f393006d09787262b8fc871c4/wrapt-2.3.0-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:51a7a4181c1295774812271fbcd7c909df372bc25579d4ed9eb875caaf0ae86f", size = 82435, upload-time = "2026-07-28T06:04:50.9Z" },
-    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/d8/90/343bb5d0f1f9669bc252a6073f085b4abf862511bd5c9c9eaec754341f1d/wrapt-2.3.0-cp313-cp313-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl", hash = "sha256:9045917809c63fdf7abe3a2ceaed3d670b8ee4500ddd9291192d30aeb34467c5", size = 170350, upload-time = "2026-07-28T06:04:52.187Z" },
-    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/59/f8/13b79a392930bd0dd6b86cbfbfe1c40944110456e1dc6d809e5c46ece904/wrapt-2.3.0-cp313-cp313-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:54ca1d5573f69b5fe1d74f1f65799c68015e82f685efec9fd8cfa40a094c44d0", size = 170022, upload-time = "2026-07-28T06:04:53.599Z" },
-    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/b2/fc/4f1b6918f5290db959d6e0c07f77385d87cede29c39c9cf8f145e9c82954/wrapt-2.3.0-cp313-cp313-manylinux_2_31_riscv64.manylinux_2_39_riscv64.whl", hash = "sha256:242b60c21e30866e6a2fa606c612b47c553fa60c0eaeeeb7797fb842ac0ce609", size = 161043, upload-time = "2026-07-28T06:04:54.936Z" },
-    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/01/e1/45d3cf74414780bdff6d0380467e003f6eb0f028b6c9403db868dbc7209c/wrapt-2.3.0-cp313-cp313-musllinux_1_2_aarch64.whl", hash = "sha256:e3f3d7ec0a51fbfe00d3aef047641ff2c58b25565b4717fc1f90e050be01cba8", size = 168576, upload-time = "2026-07-28T06:04:56.261Z" },
-    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/f3/73/2fa58dd97f191c997755e2c6d569a68f0c433db4e4b36099bdd7227b6cac/wrapt-2.3.0-cp313-cp313-musllinux_1_2_riscv64.whl", hash = "sha256:261f53870cd4fb2bf38f9f972c56c728fd224cb7c65721307de59d9e7e6741ae", size = 159140, upload-time = "2026-07-28T06:04:57.754Z" },
-    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/29/a8/08a56e2000a8816d449dcbad8c8b081697acbbd490821ceca0f9d8e8d20c/wrapt-2.3.0-cp313-cp313-musllinux_1_2_x86_64.whl", hash = "sha256:8159ec0b0cb7608175eb150de94c19e34f4d47ac655f5ca9baf45df6b688ffd3", size = 169263, upload-time = "2026-07-28T06:04:59.161Z" },
-    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/9e/d4/354e1725e35a73b2af4fa70a3e024c7a5d1bf1802dfb862dcb668aae0253/wrapt-2.3.0-cp313-cp313-win32.whl", hash = "sha256:10461884b3014fbfc8eb7d09a93c5f246363e6711d9d881f95eb8c27fdef049f", size = 78241, upload-time = "2026-07-28T06:05:00.507Z" },
-    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/6c/7e/34c87fa2174848dfee820322aaa318bab08913998ccecc8d2f57b4ad4639/wrapt-2.3.0-cp313-cp313-win_amd64.whl", hash = "sha256:ac870cc97b73bb00ac353329e9559a4bebc47c4c86792ed9b23b58c15b6ad838", size = 81113, upload-time = "2026-07-28T06:05:01.839Z" },
-    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/11/86/fcc9a530579e008c9478bb565a6cdfbfd33536660f069c8b91a6607c5050/wrapt-2.3.0-cp313-cp313-win_arm64.whl", hash = "sha256:a65e8db2b4e90c2e7ade931086351c98ef420bf7a94ee08c95ac8a3cbbc43579", size = 80182, upload-time = "2026-07-28T06:05:03.152Z" },
-    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/96/50/3864848b95b28ef73e17551fc8dccbff2628a834f52cf26a57f9c419fb83/wrapt-2.3.0-cp313-cp313t-macosx_10_13_x86_64.whl", hash = "sha256:fd1f2f557dd3491fe75905e578f4db967393d40d1a8f468edc4d40ac7f2d5944", size = 83921, upload-time = "2026-07-28T06:05:04.476Z" },
-    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/3b/4c/3d1921a60c3e8c71c540ff136e6a47a1fbccf7f671e818394889f7871d9c/wrapt-2.3.0-cp313-cp313t-macosx_11_0_arm64.whl", hash = "sha256:9f5d2aec29dfc76c37e23897dee92766a3fd4f3bff3ae7fc9c6b4bf37d8c1360", size = 84412, upload-time = "2026-07-28T06:05:05.921Z" },
-    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/fa/1a/4a796ff7adb26ada6d4b758c94d47a38320b085e7099afc088efbbcdb006/wrapt-2.3.0-cp313-cp313t-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl", hash = "sha256:646d20d413ffcd1b0a2f700076e2d0252d872dcb7754860a73e45a59ea883614", size = 207168, upload-time = "2026-07-28T06:05:07.256Z" },
-    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/1d/3e/d7777776806c579b761bac2f91721dda9f04c7a1b380213c5935cc750ae6/wrapt-2.3.0-cp313-cp313t-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:379f670f45b7bb8993edd9f6fc36c6cc65edb81cffa0b504be34acb0303fff0a", size = 214351, upload-time = "2026-07-28T06:05:08.945Z" },
-    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/63/27/2d64d394df7bf181955b3bb562bf33c4492fb4be113f53071106d43ad8b5/wrapt-2.3.0-cp313-cp313t-manylinux_2_31_riscv64.manylinux_2_39_riscv64.whl", hash = "sha256:6208f302f110295d64b22a7ac96500c791bf492dce4366e622e4912b077c9687", size = 199020, upload-time = "2026-07-28T06:05:10.418Z" },
-    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/3e/3d/fb31d3db7d9834d265fb1a27a2adf0ddf51557c67458c97b22439ad6ae3d/wrapt-2.3.0-cp313-cp313t-musllinux_1_2_aarch64.whl", hash = "sha256:ed635a9ca4f3a5a2b900c10c69e823373bc00ebc114b459383596d3487da3570", size = 209969, upload-time = "2026-07-28T06:05:11.983Z" },
-    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/1f/d1/8724b5da582e62070dc9bf4d8bf1972f317297eefd7ba1f2b5c6393ccf6c/wrapt-2.3.0-cp313-cp313t-musllinux_1_2_riscv64.whl", hash = "sha256:e3b9eaa742ae7a0aaaaad4ca4b69469d757af2d6e6663ef1dadc47adec0aeb41", size = 196324, upload-time = "2026-07-28T06:05:13.557Z" },
-    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/0d/5c/3d9ef411149543016ee6bcf3af707f787cebd946527452b94bf122e9b7b4/wrapt-2.3.0-cp313-cp313t-musllinux_1_2_x86_64.whl", hash = "sha256:d0f7284f88f4833705132d06d3b425a43095c2cbd07c58166aac3ab646ba12a4", size = 202610, upload-time = "2026-07-28T06:05:15.048Z" },
-    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/13/9b/4fc042ceb757866dd4a5fc057b3b736f2b360d3703ce9f830d83dc9226e0/wrapt-2.3.0-cp313-cp313t-win32.whl", hash = "sha256:7ebb274aba688b043429eb1500ff8a76ce0cb8ac0812ca3e301f06247b8722b3", size = 79178, upload-time = "2026-07-28T06:05:16.469Z" },
-    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/6b/ff/b94878f8eed809ca042685276bcea9f24e8c2ca7c9653bb80bbb920a68a5/wrapt-2.3.0-cp313-cp313t-win_amd64.whl", hash = "sha256:c4bded758ad6f03b965830944a2f0bc5b2eb3767fe5a7310134315d1a6610e98", size = 82634, upload-time = "2026-07-28T06:05:18.026Z" },
-    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/80/fb/663e1de5332a71685a729754312d327d4cada767c36e1c5a2db4c8de49e6/wrapt-2.3.0-cp313-cp313t-win_arm64.whl", hash = "sha256:d2cc64539da63e39ffb9c7ede849b6e8ddaaf7b3876b5cfb04efd85a5f3f4eb6", size = 81387, upload-time = "2026-07-28T06:05:19.417Z" },
-    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/58/10/b073beaea89bc0d3670a75ff51139430a54b6af7ba7796507730634536dd/wrapt-2.3.0-cp314-cp314-macosx_10_15_x86_64.whl", hash = "sha256:ea52a0d0f08c584943d5764be0e84efa912c8da23c23e1e285ff2f5641c18fcc", size = 81978, upload-time = "2026-07-28T06:05:21.133Z" },
-    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/b3/31/0916d9cebf848ed3f1a0c1888faee421747df77331e4db2bc527a9a85988/wrapt-2.3.0-cp314-cp314-macosx_11_0_arm64.whl", hash = "sha256:fd85b0aa88efdb189d6ae2f35f4526943a8f091c38599c9c31478241c819e6a1", size = 82518, upload-time = "2026-07-28T06:05:22.562Z" },
-    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/f5/73/31c1bf0f3384062751c2094dadb314916d70aa9b6bfd26d994b4a7b393fa/wrapt-2.3.0-cp314-cp314-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl", hash = "sha256:141ed6211286a9660d8d6702de598b43f0934b4f0eda16393f100a80f501d945", size = 170187, upload-time = "2026-07-28T06:05:23.904Z" },
-    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/ed/25/fce087d54b79b8905f3c3c9dd5f454bbd8d8acb80b960c4a6aee5b4659b3/wrapt-2.3.0-cp314-cp314-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:2e49885a62ec4ee854d1b9e6371fda6afd219917225752abf729a3f36d4df9a5", size = 169288, upload-time = "2026-07-28T06:05:25.378Z" },
-    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/c7/30/0d09e6dddc6b7a7230ac77f50254b5980ab4fcd22976f72f8cc8a0404458/wrapt-2.3.0-cp314-cp314-manylinux_2_31_riscv64.manylinux_2_39_riscv64.whl", hash = "sha256:1d6159c9b2fefec02314e1332dbbbfaf960e369dfd26bcf7f8b258b5732065b3", size = 160932, upload-time = "2026-07-28T06:05:27.022Z" },
-    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/2c/ca/0913af0d2ec0c43865d32d615f518fea66c13c5c930e489e9b0de248e9a8/wrapt-2.3.0-cp314-cp314-musllinux_1_2_aarch64.whl", hash = "sha256:24da48596326ef8e448cfa837b454f638713d3531262375f00e5a9681682fc07", size = 169017, upload-time = "2026-07-28T06:05:28.501Z" },
-    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/c3/f2/3d1e47ea81b822210f5df1bf942fd90780a75c055243d569b664529dea88/wrapt-2.3.0-cp314-cp314-musllinux_1_2_riscv64.whl", hash = "sha256:cd3a2edf0427013736b8127955cec62608c56e53ea47e82812ea32059cda407f", size = 159065, upload-time = "2026-07-28T06:05:30.01Z" },
-    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/43/a5/ef2066ced8e5fca204e2b361e9708e36555b40949c583d997ea3b590817d/wrapt-2.3.0-cp314-cp314-musllinux_1_2_x86_64.whl", hash = "sha256:4fa0df3bff4e7ce45759f33fd39335fe2f60477bb9ecf7b8aa41e7d07ee36a23", size = 168821, upload-time = "2026-07-28T06:05:31.649Z" },
-    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/d5/e1/016104650d4e572fa91506eb396b3dd8efbccc9284fdc1c9479c3d21db28/wrapt-2.3.0-cp314-cp314-win32.whl", hash = "sha256:2935d5454b3f179a29b12cf390ee47246740ba2c3a7545b1b46ba31a5f2a4a0b", size = 78700, upload-time = "2026-07-28T06:05:33.391Z" },
-    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/3d/97/6fdc20a9f2ca304748b3f0819cbf377d55260562777bf0b615431bc3c181/wrapt-2.3.0-cp314-cp314-win_amd64.whl", hash = "sha256:cc2cea812e5cb179a796b766747e7d3b21088760d8deb95676d482b8c8e6fa7d", size = 81422, upload-time = "2026-07-28T06:05:34.774Z" },
-    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/5e/a4/9cbd53bf05746bea2c392af39cb052427a8ec95cbd494d930733d8f44681/wrapt-2.3.0-cp314-cp314-win_arm64.whl", hash = "sha256:22cc5c0a717bd4da87018ae0bffd4c19c6fb679d3ff357216ba566ab26c76cab", size = 80639, upload-time = "2026-07-28T06:05:36.228Z" },
-    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/43/bb/6c5e4a0f66ea0d2b2dd267e8dd05a0014eea56840b3c8595d40b0a5d1f91/wrapt-2.3.0-cp314-cp314t-macosx_10_15_x86_64.whl", hash = "sha256:a6b5984cd65dd639546f0eb4b8eacf1c31cb2fe9fb5c27bffe240987cdb2cf84", size = 84030, upload-time = "2026-07-28T06:05:37.714Z" },
-    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/6a/eb/a1aedf03283bc9cbf8a1783995ddc54e3c5a86878f19002d2c428494f4c5/wrapt-2.3.0-cp314-cp314t-macosx_11_0_arm64.whl", hash = "sha256:c88abcf53daef80e01a75c7530e727fa6e2c1888fe83e3dcdba4c96216a1f5c7", size = 84419, upload-time = "2026-07-28T06:05:39.131Z" },
-    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/63/61/50d511c0dc5105563849e86daa3e16ac7feef699f79fb05af45ea70107d5/wrapt-2.3.0-cp314-cp314t-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl", hash = "sha256:85de890ff968196e92dd1ae73a9fb8970495e7650a457b1c9ef0ac3dd550bce2", size = 207171, upload-time = "2026-07-28T06:05:40.69Z" },
-    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/3f/59/9b538cf7795217e810699d16bc88b96a830d9b5c403eb2ec2db6b5f2ae81/wrapt-2.3.0-cp314-cp314t-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:50f416b74d092bb9f41b424e90dd457f365f7ba4b11de62a23679769a21bd85c", size = 214329, upload-time = "2026-07-28T06:05:42.287Z" },
-    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/b3/28/9935d62b1499e5c8b3d191e99ba4eb31ca237a0b699142011a837e9dc7ea/wrapt-2.3.0-cp314-cp314t-manylinux_2_31_riscv64.manylinux_2_39_riscv64.whl", hash = "sha256:39febbee6d77301d31da6996b152ce52452da7c7ef72aba10c2fa976dff9c295", size = 199079, upload-time = "2026-07-28T06:05:43.958Z" },
-    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/2b/01/4446b80fa2ffa47a3449b250d004ba1c1937f07f64a179608fec735df866/wrapt-2.3.0-cp314-cp314t-musllinux_1_2_aarch64.whl", hash = "sha256:93513bec052c6cd987f9f580c3df068c8bc4ebae6543736be3ca7ec5959cafcd", size = 209992, upload-time = "2026-07-28T06:05:45.677Z" },
-    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/d4/07/56f26c9f9979586a021e8148747004aba4498f49458c90b0502969b904e1/wrapt-2.3.0-cp314-cp314t-musllinux_1_2_riscv64.whl", hash = "sha256:729126e667da34d251b8ebf8a45ef0c5ddadc21542b3d6e1abf4259ece6508df", size = 196334, upload-time = "2026-07-28T06:05:47.608Z" },
-    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/8b/41/6d7bcc895b0f28b2250e10908f060687b9165429dcd7f22ddb3d4c031b74/wrapt-2.3.0-cp314-cp314t-musllinux_1_2_x86_64.whl", hash = "sha256:626b69db2021aa01671ec7bbc9740e558522bd44c18cf2ce69bf3d666a014109", size = 202644, upload-time = "2026-07-28T06:05:49.183Z" },
-    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/cd/25/7860927edba06b758b8852a6f02e832be715563c67a6795d94350bc81099/wrapt-2.3.0-cp314-cp314t-win32.whl", hash = "sha256:629d73378082c00a8173031f9fb30a3ac6abbc894a5bfdfae71fabc60642d501", size = 79685, upload-time = "2026-07-28T06:05:50.976Z" },
-    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/c4/0f/270bafe92fde3b069a39bc01e39ee79340895b335640df861d43d2a51885/wrapt-2.3.0-cp314-cp314t-win_amd64.whl", hash = "sha256:42869085687f0aefd57c0f636c3f9354f8ffb321a8ba9cb52d19beb796e561c5", size = 83104, upload-time = "2026-07-28T06:05:52.405Z" },
-    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/55/b3/af176d79a8515a8a720eccdad9a96f6e31a30abf2865430c8c42adf2fd13/wrapt-2.3.0-cp314-cp314t-win_arm64.whl", hash = "sha256:b1e5aa486e269b00ed35e64771c7d0ab8096cfd2643405ca8cd60ebedc099a51", size = 81774, upload-time = "2026-07-28T06:05:53.902Z" },
-    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/00/39/3daf9f47be208606586de4568ba6713db53ebc8fd7a575aea1fe57983b69/wrapt-2.3.0-py3-none-any.whl", hash = "sha256:d8c7ed08477429752b8c44991f40ad7838b18332a160698740a6bfbc10d998a2", size = 61866, upload-time = "2026-07-28T06:06:12.9Z" },
 ]
 
 [[package]]

@@ -31,12 +31,6 @@ commonEnv:
   - name: NUM_WORKERS
     value: '10'
 
-otel:
-  enabled: true
-  autoInstrumentation:
-    enabled: true
-    language: python
-
 image:
   repository: "856965016623.dkr.ecr.us-east-1.amazonaws.com/patient-matching-service"
   tag: ""  # Tag is added in github workflow
