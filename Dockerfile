@@ -170,6 +170,26 @@ RUN chown -R appuser:appgroup ${PROJECT_DIR} /opt/venv ${PROMETHEUS_MULTIPROC_DI
 # Switch to the restricted user to enhance security
 USER appuser
 
+# PYTHONPATH is prepended with the OTel Operator's auto-instrumentation bundle
+# in envs where it's enabled (otel.autoInstrumentation.enabled: true in
+# .helm/dev-ue1.values.yaml / staging-ue1.values.yaml), which shadows our own
+# installed packages with its own frozen copies (e.g. typing_extensions) --
+# see person-matching-service PR #154 / BAI-622 for the root-cause writeup.
+# Re-prepending our venv here restores normal precedence: our packages
+# resolve first, the bundle's are only a fallback for what we don't have
+# (i.e. the auto-instrumentation loader itself). The path is asked from
+# sysconfig rather than hardcoded (e.g. /opt/venv/lib/python3.12/site-packages)
+# so a future base-image Python bump can't silently turn this into a no-op.
+CMD ["sh", "-c", "\
+    VENV_SITE_PACKAGES=$(python -c 'import sysconfig; print(sysconfig.get_path(\"purelib\"))') && \
+    export PYTHONPATH=\"${VENV_SITE_PACKAGES}${PYTHONPATH:+:$PYTHONPATH}\" && \
+    exec uvicorn patient_matching_service.api:app \
+        --host 0.0.0.0 \
+        --port 5000 \
+        --workers \"${NUM_WORKERS:-1}\" \
+        --timeout-graceful-shutdown 25 \
+"]
+
 # Stage 3: Development runtime (extends production with dev deps, tests, and hot reload)
 FROM production AS development
 

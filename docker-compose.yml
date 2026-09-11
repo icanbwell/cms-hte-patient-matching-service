@@ -12,7 +12,6 @@ services:
     container_name: patient_matching_service
     environment:
       DEBUG_METRICS: 0
-      DD_TRACE_ENABLED: "false"
       LOG_LEVEL: INFO
     env_file: .env
     ports:

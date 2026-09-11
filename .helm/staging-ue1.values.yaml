@@ -13,6 +13,12 @@ bwell:
           paths:
             - "/"
     external:
-      enabled: falseÏ
+      enabled: false
 
   env:
+
+otel:
+  enabled: true
+  autoInstrumentation:
+    enabled: true
+    language: python

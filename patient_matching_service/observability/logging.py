@@ -1,11 +1,12 @@
 """Structured, secret-redacting logging.
 
 Ported from person-matching-service's observability/logging.py, minus its
-OpenTelemetry trace-correlation piece -- this repo's tracing is ddtrace, not
-OTel (see DD_TRACE_ENABLED in docker-compose.yml/.helm), and ddtrace has its
-own log-injection mechanism (DD_LOGS_INJECTION) rather than needing an
-application-level span-context filter. If this repo adopts OTel later, port
-TraceContextFilter from the source above rather than reinventing it.
+OpenTelemetry trace-correlation piece. OTel instrumentation here comes from
+the OTel Operator's auto-instrumentation (otel.autoInstrumentation.enabled
+in .helm/dev-ue1.values.yaml / staging-ue1.values.yaml, BAI-622), which
+patches the process from outside application code -- it does not stamp
+trace_id/span_id onto log records. Port TraceContextFilter from the source
+above if log-trace correlation in Groundcover is needed.
 
 Two composable pieces:
 
