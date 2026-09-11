@@ -1,7 +1,6 @@
 # Stage 1: Production dependencies
 # This stage installs production Python dependencies using uv
-ARG PYTHON_VERSION=3.12
-FROM 856965016623.dkr.ecr.us-east-1.amazonaws.com/root-mirror/python:${PYTHON_VERSION}-alpine3.22 AS python_packages
+FROM 856965016623.dkr.ecr.us-east-1.amazonaws.com/root-mirror/python:3.12-alpine3.22 AS python_packages
 
 # Set terminal width (COLUMNS) and height (LINES)
 ENV COLUMNS=300
@@ -105,7 +104,7 @@ RUN --mount=type=secret,id=jfrog_read_user --mount=type=secret,id=jfrog_read_tok
     uv sync --frozen --all-extras --group dev --no-install-project --verbose
 
 # Stage 2: Production runtime image
-FROM 856965016623.dkr.ecr.us-east-1.amazonaws.com/root-mirror/python:${PYTHON_VERSION}-alpine3.22 AS production
+FROM 856965016623.dkr.ecr.us-east-1.amazonaws.com/root-mirror/python:3.12-alpine3.22 AS production
 
 # Set terminal width (COLUMNS) and height (LINES)
 ENV COLUMNS=300
@@ -140,11 +139,6 @@ ENV PROMETHEUS_MULTIPROC_DIR=/tmp/prometheus
 ENV PIP_ROOT_USER_ACTION=ignore
 ENV UV_PROJECT_ENVIRONMENT=/opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
-# Re-declared so the value set at the top of this file (build-time ARG) is
-# available to this stage's ENV/CMD -- Docker requires this per-stage
-# redeclaration, it isn't automatic just because the ARG exists globally.
-ARG PYTHON_VERSION
-ENV VENV_SITE_PACKAGES=/opt/venv/lib/python${PYTHON_VERSION}/site-packages
 
 # Create the directory for Prometheus metrics
 RUN mkdir -p ${PROMETHEUS_MULTIPROC_DIR}
@@ -183,8 +177,11 @@ USER appuser
 # see person-matching-service PR #154 / BAI-622 for the root-cause writeup.
 # Re-prepending our venv here restores normal precedence: our packages
 # resolve first, the bundle's are only a fallback for what we don't have
-# (i.e. the auto-instrumentation loader itself).
+# (i.e. the auto-instrumentation loader itself). The path is asked from
+# sysconfig rather than hardcoded (e.g. /opt/venv/lib/python3.12/site-packages)
+# so a future base-image Python bump can't silently turn this into a no-op.
 CMD ["sh", "-c", "\
+    VENV_SITE_PACKAGES=$(python -c 'import sysconfig; print(sysconfig.get_path(\"purelib\"))') && \
     export PYTHONPATH=\"${VENV_SITE_PACKAGES}${PYTHONPATH:+:$PYTHONPATH}\" && \
     exec uvicorn patient_matching_service.api:app \
         --host 0.0.0.0 \
