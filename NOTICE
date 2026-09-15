@@ -1,0 +1,10 @@
+cms-hte-patient-matching-service
+Copyright 2026 b.well Connected Health, Inc.
+
+This product includes software developed by b.well Connected Health, Inc. (https://www.bwell.com).
+
+Portions of this software may incorporate third-party open source components; see THIRD-PARTY-NOTICES.md for a complete list of those components and their respective licenses.
+
+b.well Connected Health, Inc. is not affiliated with, and this software is not endorsed or certified by, the Centers for Medicare & Medicaid Services (CMS) or HL7 International. This software is a FastAPI service wrapping the `cms-hte-patient-matching` deterministic rules engine as a FHIR R4 `$match` HTTP operation; references to CMS, the CMS Patient Matching Proposal, and FHIR are solely for interoperability description.
+
+This software may be subject to U.S. export control laws, including the Export Administration Regulations (EAR). You may not use, export, or re-export this software in violation of applicable export laws, or to any country, entity, or individual subject to U.S. sanctions or listed on a U.S. government restricted- or denied-party list.

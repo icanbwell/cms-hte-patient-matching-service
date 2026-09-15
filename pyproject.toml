@@ -3,6 +3,7 @@ name = "patient_matching_service"
 version = "0.1.0"
 description = "FastAPI service for patient matching with FHIR integration"
 readme = "README.md"
+license = "Apache-2.0"
 requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.110.0",
@@ -26,6 +27,8 @@ dev = [
     "asgi-lifespan>=2.1.0",
     "bandit>=1.8.3",
     "ruff>=0.16.5",
+    # pip-licenses is needed for `make third-party-notices`
+    "pip-licenses>=5.0.0",
 ]
 
 [tool.setuptools.dynamic]

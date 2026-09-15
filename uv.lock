@@ -890,6 +890,7 @@ dev = [
     { name = "bandit" },
     { name = "black" },
     { name = "mypy" },
+    { name = "pip-licenses" },
     { name = "pre-commit" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
@@ -915,6 +916,7 @@ dev = [
     { name = "bandit", specifier = ">=1.8.3" },
     { name = "black", specifier = ">=24.8.0" },
     { name = "mypy", specifier = ">=1.11.2" },
+    { name = "pip-licenses", specifier = ">=5.0.0" },
     { name = "pre-commit", specifier = ">=3.8.0" },
     { name = "pytest", specifier = ">=8.3.3" },
     { name = "pytest-asyncio", specifier = ">=0.24.0" },
@@ -936,6 +938,18 @@ name = "phonetics"
 version = "1.0.5"
 source = { registry = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/simple" }
 sdist = { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/67/a5/d1b6dbcbb05477aa5f0c5e73a7d68c6d23ab098af4461072f00999ed573a/phonetics-1.0.5.tar.gz", hash = "sha256:16263948c82fce1e257964b2ab4adc953f995e0fa7e2e60e6ba336d77a7235ba", size = 8848, upload-time = "2018-03-23T15:38:37.388Z" }
+
+[[package]]
+name = "pip-licenses"
+version = "5.5.5"
+source = { registry = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/simple" }
+dependencies = [
+    { name = "prettytable" },
+]
+sdist = { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/7d/18/ddd93af610a04f56a51a27095ddfe55238e1ec236f6758730a0d2c0b49f2/pip_licenses-5.5.5.tar.gz", hash = "sha256:60750c006adf7a0910347b726e8ee9fee3bc8d2e7c8307a5c4ec0776c8e2a276", size = 54955, upload-time = "2026-03-28T22:12:56.48Z" }
+wheels = [
+    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/2a/9a/6acfdb8d463eac7cdae7534d35d72237eca63f5fbafe797289d8a5fae447/pip_licenses-5.5.5-py3-none-any.whl", hash = "sha256:f4c4c6d9e6a03612cf59f29f19dc8ab54904d82e055b8e191498f2279a224e14", size = 23247, upload-time = "2026-03-28T22:12:54.89Z" },
+]
 
 [[package]]
 name = "platformdirs"
@@ -969,6 +983,18 @@ dependencies = [
 sdist = { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/74/89/1f3e8e1fc3e97de0fa963495832f581f025f29471602a309e48808244292/pre_commit-4.6.2.tar.gz", hash = "sha256:8f5d7bfb021ecdbcd9d49d89847082dd24172ccde534390081a679ad046e2441", size = 198670, upload-time = "2026-08-10T22:07:18.421Z" }
 wheels = [
     { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/45/e2/bbb7129c9e7999a6b8ee9cca3b66486c25c423ab5a75f34071798b74ce94/pre_commit-4.6.2-py2.py3-none-any.whl", hash = "sha256:e2dde9a75d3bce11bd3831c26d134df00a2803c1d818be6a0383c3dcda25dc4e", size = 226202, upload-time = "2026-08-10T22:07:16.942Z" },
+]
+
+[[package]]
+name = "prettytable"
+version = "3.18.0"
+source = { registry = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/simple" }
+dependencies = [
+    { name = "wcwidth" },
+]
+sdist = { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/81/74/ba08d81e668ccfe8658d7520a307e63c19862c08eb4ccb26f356c5239a7a/prettytable-3.18.0.tar.gz", hash = "sha256:439217116152244369caf3d9f1caf2f9fe29b03bd79e88d2928c8e718c95d680", size = 76373, upload-time = "2026-06-22T16:07:50.174Z" }
+wheels = [
+    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/fe/be/2e6798ace5cc036f5d05d36b7b2fd85346f1a708c87060890b070d0ec607/prettytable-3.18.0-py3-none-any.whl", hash = "sha256:b3346e0e6f79180833aebaac088ae926340586cf6d7d991b9eb125b65f72313a", size = 37357, upload-time = "2026-06-22T16:07:48.595Z" },
 ]
 
 [[package]]
@@ -1580,6 +1606,15 @@ dependencies = [
 sdist = { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/2d/dc/a6eb1ddfa7f1e390fa599b078453c97edb3f6f846b34fb4eac3e8ea16401/virtualenv-21.7.4.tar.gz", hash = "sha256:c9d960c95fa458171e58222a5ccab7465298e4b6559977865e627c4719f1e825", size = 5345511, upload-time = "2026-08-10T22:54:33.316Z" }
 wheels = [
     { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/40/4c/eb2f52aeeaf30dbd073d315a251a63ae2b8263171ec4428c135140cb0802/virtualenv-21.7.4-py3-none-any.whl", hash = "sha256:376ec93cd6aab3044fa395d7db226db38043b7b5748948044b2a87168525e843", size = 5324444, upload-time = "2026-08-10T22:54:31.515Z" },
+]
+
+[[package]]
+name = "wcwidth"
+version = "0.8.3"
+source = { registry = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/simple" }
+sdist = { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/36/57/ed58088fafdf4c55a0ad6bde846502567645424d7ebf325230b9237f4085/wcwidth-0.8.3.tar.gz", hash = "sha256:d128512515fbf4612e0ff21fd6380399210318b7b54a9af59dff8454cf9730eb", size = 1458450, upload-time = "2026-08-28T18:10:06.875Z" }
+wheels = [
+    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/c4/0e/57f6bb3024a597b2e8ec4aee710ffe62ddc95af2e2bb1ee7a7abdc22c68c/wcwidth-0.8.3-py3-none-any.whl", hash = "sha256:d5b73dba6158a595ec9370350e7f2637bcac8d6c5e4fde34f30fcffb6103a5e4", size = 331669, upload-time = "2026-08-28T18:10:04.909Z" },
 ]
 
 [[package]]
