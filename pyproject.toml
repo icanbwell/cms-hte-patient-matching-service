@@ -13,7 +13,15 @@ dependencies = [
     "pyjwt[crypto]>=2.9.0",
     "httpx>=0.27.2",
     "cms-hte-patient-matching>=0.0.5",
+    # Pinned to a commit on icanbwell/cms-hte-ial2-reader#6 (not yet merged/
+    # released) for extract_cms_smart_id_token. Switch to a published
+    # `cms-hte-ial2-reader>=X.Y.Z` version constraint once that PR merges
+    # and a release is cut.
+    "cms-hte-ial2-reader",
 ]
+
+[tool.uv.sources]
+cms-hte-ial2-reader = { git = "https://github.com/icanbwell/cms-hte-ial2-reader.git", rev = "62f3a63" }
 
 [dependency-groups]
 dev = [

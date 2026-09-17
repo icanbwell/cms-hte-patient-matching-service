@@ -49,7 +49,7 @@ These need to be fixed as part of adopting this design, not left in place (see M
 
 - Reimplementing or forking any matching/normalization/collision-probability logic — that all lives in `patient_matching` and stays there.
 - Building a general-purpose fuzzy-search service (the package's `patient_matching.fuzzy` toolkit is out of scope; it's not wired into the actual matching path).
-- IAL2 JWT-based matching (`match_from_token`, `/match/ial2`) in the first release — see Open Questions; can be added later behind the same `PatientMatcherService` instance without an architecture change.
+- ~~IAL2 JWT-based matching (`match_from_token`, `/match/ial2`) in the first release — see Open Questions; can be added later behind the same `PatientMatcherService` instance without an architecture change.~~ **Resolved 2026-09-17** (Open Question 3): IAL2 support shipped on `POST /Patient/$match` itself, not a separate `/match/ial2` route — see "IAL2 support via CMS Blue Button's `cms_smart` extension" below. `cms-hte-patient-matching`'s own `match_from_token`/`ial2_extractor` were removed upstream ([PR #58](https://github.com/icanbwell/cms-hte-patient-matching/pull/58)) in favor of callers sourcing the FHIR Patient themselves via `cms-hte-ial2-reader`.
 - Publishing `patient_matching` to the JFrog index if it isn't already there — that's a prerequisite tracked separately (see Open Questions), not this service's work.
 
 ## Reference Architecture: the person-matching-service pattern
@@ -100,6 +100,33 @@ Reference: the package even ships its own example FastAPI wiring (`patient_match
 - Cache lifecycle: at startup, build the `DuckDBCache` via `CacheManager` (`FhirClient` pointed at the b.well FHIR server → `NormalizationManager` → cache). Use `CacheManager.start_scheduled_refresh(...)` (backed by `apscheduler`, already a package dependency) instead of building a bespoke refresh job — this replaces the role person-matching-service's Mongo `BlockingService`/`HybridBlockingOrchestrator` plays, but is refresh-based rather than per-request-query-based.
 - **Update (0.0.5):** the previous version of this doc claimed the matching call was synchronous and could be run directly in the async handler, on the reasoning that there was no per-request network I/O. That stopped being true once `MongoAtlasCache` (session 12) introduced real per-rule network round-trips — `cms-hte-patient-matching` 0.0.5 (PR #48) converted the entire call chain (`PatientMatcherService.match_patient`/`match_from_token`, `CacheBackend`, `MatchingBackend`, `MatchingEngine.match`, `FhirClient`, `TokenVerifier`) to `async def`, for exactly the event-loop-blocking reason person-matching-service's ADR-0002 already documents for its own Mongo client. `MatchController.match()` now `await`s `service.match_patient(...)` accordingly, and `_build_cache()`/cache shutdown in `api.py`'s `lifespan` await `CacheManager.build_cache()`/`cache.close()` too.
 
+### IAL2 support via CMS Blue Button's `cms_smart` extension
+
+CMS Aligned Networks convey a patient's IAL2-verified identity by nesting a CSP-issued ID token
+inside the outer auth JWT's claims, under `extensions.cms_smart.id_token` (see
+[CMS's Aligned Networks documentation](https://bluebutton.cms.gov/cms-aligned-networks-documentation/)).
+Rather than a separate `/match/ial2` route (the shape `patient_matching.api.app`'s reference
+wiring uses, and what the original Non-Goal above assumed), `POST /Patient/$match` itself checks
+the already-JWT-verified auth token's claims for this extension:
+
+- If present, `MatchController` pulls the nested id_token out via
+  `cmshteial2reader.extract_cms_smart_id_token`, verifies and converts it to a FHIR `Patient` via
+  an `IAL2Extractor` (backed by `MultiIssuerTokenVerifier`, configured from
+  `IAL2_ALLOWED_JWKS_URLS`/`IAL2_AUDIENCE`), and matches on that -- the request body is not
+  required and is ignored if sent.
+- If absent, behavior is unchanged: the query `Patient` must come from the request body.
+- If a `cms_smart` identity is present but `IAL2_ALLOWED_JWKS_URLS`/`IAL2_AUDIENCE` aren't
+  configured, the request is rejected (400) rather than silently falling back to the body path.
+
+`cms-hte-patient-matching`'s own `match_from_token`/`ial2_extractor` were removed upstream ([PR
+#58](https://github.com/icanbwell/cms-hte-patient-matching/pull/58)) -- that library is scoped to
+matching FHIR Patient resources only. This service depends directly on `cms-hte-ial2-reader` for
+IAL2 token verification/extraction instead, matching that PR's stated migration path. The
+`extensions.cms_smart` claim parsing itself lives in `cms-hte-ial2-reader`
+(`extract_cms_smart_id_token`, added in
+[PR #6](https://github.com/icanbwell/cms-hte-ial2-reader/pull/6)) rather than duplicated in this
+service, since it's CMS-specific parsing any consumer of that library could need.
+
 ### Configuration
 
 - Follow the same pattern as person-matching-service (ad-hoc `os.environ.get(...)`, per-environment values split across `.helm/*.values.yaml`) for consistency across the two sibling services, rather than introducing `pydantic-settings` unilaterally. Key variables:
@@ -110,6 +137,7 @@ Reference: the package even ships its own example FastAPI wiring (`patient_match
 | `CACHE_REFRESH_INTERVAL_MINUTES` | `CacheManagerConfig.refresh_interval_minutes` |
 | `CACHE_DATABASE_PATH` | `DuckDBCache(database=...)` — `:memory:` vs. file-backed |
 | `AUTH_JWK_URLS`, `AUTH_EXPECTED_CIDS`, `AUTH_CID_CHECK_ISSUER`, `AUTH_JWKS_CACHE_TTL_SECONDS` | same JWT/JWKS auth knobs as person-matching-service |
+| `IAL2_ALLOWED_JWKS_URLS`, `IAL2_AUDIENCE` | enable IAL2 identity-token support on `/Patient/$match` via the `cms_smart` extension (see above); unset disables it |
 | `LOG_LEVEL` | root logger level |
 
 - `ServiceConfig(rules=...)` is not exposed as an env var initially — default to `APPROVED_RULES`/`CATEGORY_2_RULES` (the full CMS rule set) unless a concrete need to restrict rules emerges.
@@ -122,7 +150,7 @@ Reference: the package even ships its own example FastAPI wiring (`patient_match
 
 Person-matching-service has a known gap: no global exception handler, so malformed input (bad `Parameters` JSON, invalid `resourceType`) leaks as an unstructured 500. This service should close that gap rather than copy it:
 - `@app.exception_handler` for `pydantic.ValidationError`/`fhir.resources` validation errors → structured 400.
-- Catch `patient_matching.ial2_extraction.TokenVerificationError` and `ValueError` (e.g. "IAL2 extractor not configured") explicitly if/when IAL2 support is added.
+- Catch `cmshteial2reader.TokenVerificationError` (a bad/expired IAL2 identity token) via `@app.exception_handler` -> 401, and reject a `cms_smart` identity claim when IAL2 isn't configured via `InvalidMatchRequest` -> 400 (see "IAL2 support via CMS Blue Button's `cms_smart` extension" above).
 - Catch `httpx.HTTPStatusError`/connection errors from `FhirClient`/`ClientCredentialsAuth` during cache refresh and log+alert rather than crash the refresh job.
 - Note: `MatchingEngine`/`NormalizationManager` themselves fail closed on bad field data (e.g. unparseable dates just don't match, they don't raise) — so the handler surface needed here is smaller than it would be for a library that throws on bad input.
 
@@ -161,7 +189,7 @@ Person-matching-service has a known gap: no global exception handler, so malform
 |---|---|---|---|
 | 1 | What does "HTE" refer to? Nothing in the wrapped package corresponds to it. | Whoever named the repo/ticket | May indicate a naming correction is needed before this propagates into more docs/infra |
 | 2 | ~~Is `patient_matching` actually published to bWell's JFrog virtual-pypi index yet?~~ | Package owner / platform team | **Resolved 2026-09-05**: published to public PyPI as `cms-hte-patient-matching` v0.0.2; resolves via bWell's existing JFrog `virtual-pypi` proxy with no separate publish step. Still worth confirming which Table 2 rule-set version v0.0.2 ships (see Migration Plan step 2). |
-| 3 | Is IAL2-JWT-based matching (`/match/ial2`) in scope for v1, or a later phase? | Product/consumers of this service | Affects whether `IAL2Extractor`/`TokenVerifier` wiring and its error handling are built now |
+| 3 | ~~Is IAL2-JWT-based matching (`/match/ial2`) in scope for v1, or a later phase?~~ | Product/consumers of this service | **Resolved 2026-09-17**: shipped on `POST /Patient/$match` via the CMS Blue Button `cms_smart` claim, not a separate route — see "IAL2 support via CMS Blue Button's `cms_smart` extension" above. |
 | 4 | What FHIR server/environment should back `FhirClient`'s candidate source per environment? | Platform/FHIR team | Needed to set `FHIR_BASE_URL`/auth per Helm env file |
 | 5 | Expected candidate-pool size per query, given `DuckDBCache`'s fuzzy search is an O(n) Python loop (not indexed) | Product / data volume estimate | Determines whether a blocking/scoping strategy is needed on top of `patient_matching`'s own cache before this becomes a latency problem at scale |
 | 6 | Cache refresh cadence and whether a single in-process DuckDB cache (vs. a shared external store) is sufficient given HPA will run 2–10 pod replicas each with its own independent cache | Whoever owns capacity/consistency requirements | Each replica rebuilding/refreshing its own cache independently may cause consistency drift and duplicated FHIR-server load across replicas — worth resolving before enabling autoscaling. **In progress**: a MongoDB Atlas Search-backed `CacheBackend` (shared store, addresses this directly) is being implemented in `cms-hte-patient-matching` PR [#45](https://github.com/icanbwell/cms-hte-patient-matching/pull/45) — not yet merged; revisit this row once that lands. |
@@ -171,7 +199,7 @@ Person-matching-service has a known gap: no global exception handler, so malform
 
 - No reimplementation of matching/normalization/collision logic.
 - No general fuzzy-search service.
-- No IAL2 support in v1 unless Open Question 3 resolves otherwise.
+- ~~No IAL2 support in v1 unless Open Question 3 resolves otherwise.~~ Resolved 2026-09-17 — see Open Question 3.
 - No new dependency-publishing pipeline for `patient_matching` (tracked as a blocking prerequisite, not this service's scope).
 
 ## Appendix: file-mapping cheat sheet (person-matching-service → cms-hte-patient-matching-service)

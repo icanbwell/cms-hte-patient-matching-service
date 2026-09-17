@@ -41,14 +41,27 @@ The service listens on `http://localhost:5050`.
 | `CACHE_REFRESH_INTERVAL_MINUTES` | How often the cache re-syncs from the FHIR server. Defaults to `60`. |
 | `AUTH_JWK_URLS` | Comma-separated JWKS endpoint(s) for bearer-token auth on `/Patient/$match`. **Unset by default** -- fails closed (every request to that route returns 401), not open. |
 | `AUTH_EXPECTED_CIDS`, `AUTH_CID_CHECK_ISSUER`, `AUTH_JWKS_CACHE_TTL_SECONDS` | Optional client-id allow-list and JWKS cache tuning. |
+| `IAL2_ALLOWED_JWKS_URLS` | Comma-separated JWKS URL allow-list for verifying IAL2 identity tokens presented via the CMS Blue Button `cms_smart` extension (see below). **Unset by default** -- IAL2 support is disabled; a request whose auth token carries a `cms_smart` identity is rejected with 400 rather than silently falling back to a body `Patient`. |
+| `IAL2_AUDIENCE` | Expected `aud` claim on the nested IAL2 identity token. Required alongside `IAL2_ALLOWED_JWKS_URLS` to enable IAL2 support. |
 | `LOG_LEVEL` | Root logger level. Defaults to `INFO`. |
 
 ## API
 
-- `POST /Patient/$match` -- FHIR `$match` operation. Accepts a `Parameters` resource containing a
-  query `Patient`; returns a `searchset` `Bundle` of matched candidates, each entry carrying the
-  match outcome and matched rule ID as extensions. Requires a bearer JWT (see `AUTH_JWK_URLS`
-  above).
+- `POST /Patient/$match` -- FHIR `$match` operation. Requires a bearer JWT (see `AUTH_JWK_URLS`
+  above). The query `Patient` comes from one of two places:
+  - **Body-supplied Patient (default):** a `Parameters` resource containing a query `Patient` in
+    the request body.
+  - **CMS Blue Button `cms_smart` identity:** if the auth JWT's claims carry
+    `extensions.cms_smart.id_token` (see
+    [CMS's Aligned Networks documentation](https://bluebutton.cms.gov/cms-aligned-networks-documentation/)),
+    that nested, CSP-issued ID token is verified and converted to a FHIR `Patient` via
+    [`cms-hte-ial2-reader`](https://github.com/icanbwell/cms-hte-ial2-reader) instead -- no
+    request body is required, and if one is sent anyway it's ignored. Requires
+    `IAL2_ALLOWED_JWKS_URLS`/`IAL2_AUDIENCE` to be configured; otherwise the request is rejected
+    with 400.
+
+  Either way, the response is a `searchset` `Bundle` of matched candidates, each entry carrying
+  the match outcome and matched rule ID as extensions.
 - `GET /health` -- unauthenticated liveness/readiness probe target.
 
 ## Running tests

@@ -17,6 +17,10 @@ def _parameters(patient: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _cms_smart_claims(id_token: str) -> dict[str, Any]:
+    return {"extensions": {"cms_smart": {"version": "1", "id_token": id_token}}}
+
+
 class TestExtractPatient:
     def test_extracts_patient_resource(self) -> None:
         patient = {"resourceType": "Patient", "id": "p1"}
@@ -58,7 +62,7 @@ class TestMatch:
         controller = MatchController(service=service)
 
         patient = {"resourceType": "Patient", "id": "query"}
-        bundle = await controller.match(_parameters(patient))
+        bundle = await controller.match(_parameters(patient), jwt_claims={})
 
         service.match_patient.assert_called_once_with(patient)
         assert bundle["resourceType"] == "Bundle"
@@ -76,7 +80,9 @@ class TestMatch:
         service.match_patient.return_value = MatchResponse(outcome="no_match")
         controller = MatchController(service=service)
 
-        bundle = await controller.match(_parameters({"resourceType": "Patient"}))
+        bundle = await controller.match(
+            _parameters({"resourceType": "Patient"}), jwt_claims={}
+        )
 
         assert bundle["total"] == 0
         assert "entry" not in bundle
@@ -86,6 +92,74 @@ class TestMatch:
         controller = MatchController(service=service)
 
         with pytest.raises(InvalidMatchRequest):
-            await controller.match({"resourceType": "Patient"})
+            await controller.match({"resourceType": "Patient"}, jwt_claims={})
 
         service.match_patient.assert_not_called()
+
+    async def test_missing_body_without_cms_smart_claim_rejected(self) -> None:
+        service = AsyncMock()
+        controller = MatchController(service=service)
+
+        with pytest.raises(InvalidMatchRequest):
+            await controller.match(None, jwt_claims={})
+
+        service.match_patient.assert_not_called()
+
+
+class TestMatchWithIal2:
+    async def test_cms_smart_claim_extracts_patient_and_skips_body(self) -> None:
+        service = AsyncMock()
+        service.match_patient.return_value = MatchResponse(outcome="no_match")
+        ial2_extractor = AsyncMock()
+        extracted_patient = {"resourceType": "Patient", "id": "from-token"}
+        ial2_extractor.extract.return_value = extracted_patient
+        controller = MatchController(service=service, ial2_extractor=ial2_extractor)
+
+        bundle = await controller.match(
+            None, jwt_claims=_cms_smart_claims("the-nested-jwt")
+        )
+
+        ial2_extractor.extract.assert_called_once_with("the-nested-jwt")
+        service.match_patient.assert_called_once_with(extracted_patient)
+        assert bundle["total"] == 0
+
+    async def test_cms_smart_claim_ignores_body(self) -> None:
+        service = AsyncMock()
+        service.match_patient.return_value = MatchResponse(outcome="no_match")
+        ial2_extractor = AsyncMock()
+        extracted_patient = {"resourceType": "Patient", "id": "from-token"}
+        ial2_extractor.extract.return_value = extracted_patient
+        controller = MatchController(service=service, ial2_extractor=ial2_extractor)
+
+        body_patient = {"resourceType": "Patient", "id": "from-body"}
+        await controller.match(
+            _parameters(body_patient),
+            jwt_claims=_cms_smart_claims("the-nested-jwt"),
+        )
+
+        service.match_patient.assert_called_once_with(extracted_patient)
+
+    async def test_cms_smart_claim_without_configured_extractor_rejected(self) -> None:
+        service = AsyncMock()
+        controller = MatchController(service=service, ial2_extractor=None)
+
+        with pytest.raises(InvalidMatchRequest):
+            await controller.match(
+                None, jwt_claims=_cms_smart_claims("the-nested-jwt")
+            )
+
+        service.match_patient.assert_not_called()
+
+    async def test_no_cms_smart_claim_uses_body_path_even_when_ial2_configured(
+        self,
+    ) -> None:
+        service = AsyncMock()
+        service.match_patient.return_value = MatchResponse(outcome="no_match")
+        ial2_extractor = AsyncMock()
+        controller = MatchController(service=service, ial2_extractor=ial2_extractor)
+
+        patient = {"resourceType": "Patient", "id": "query"}
+        await controller.match(_parameters(patient), jwt_claims={})
+
+        ial2_extractor.extract.assert_not_called()
+        service.match_patient.assert_called_once_with(patient)

@@ -17,6 +17,11 @@ from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from typing import Any
 
+from cmshteial2reader import (
+    IAL2Extractor,
+    MultiIssuerTokenVerifier,
+    TokenVerificationError,
+)
 from fastapi import APIRouter, Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -106,13 +111,34 @@ def _build_jwt_validator() -> JWTValidator | None:
     )
 
 
+def _build_ial2_extractor() -> IAL2Extractor | None:
+    """Build the IAL2 extractor from IAL2_ALLOWED_JWKS_URLS/IAL2_AUDIENCE,
+    or None if unset (IAL2 support disabled -- a cms_smart identity token
+    on a request is then rejected, not silently ignored; see
+    MatchController.match)."""
+    jwks_urls = os.getenv("IAL2_ALLOWED_JWKS_URLS")
+    audience = os.getenv("IAL2_AUDIENCE")
+    if not jwks_urls or not audience:
+        logger.warning(
+            "IAL2_ALLOWED_JWKS_URLS/IAL2_AUDIENCE are not set -- IAL2 "
+            "identity token support (the CMS Blue Button cms_smart "
+            "extension) is disabled."
+        )
+        return None
+
+    verifier = MultiIssuerTokenVerifier.from_env(audience=audience)
+    return IAL2Extractor(verifier=verifier)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     logger.info("Starting up patient_matching_service...")
 
     cache = await _build_cache()
     service = PatientMatcherService(cache=cache, config=ServiceConfig())
-    app.state.match_controller = MatchController(service=service)
+    app.state.match_controller = MatchController(
+        service=service, ial2_extractor=_build_ial2_extractor()
+    )
 
     app.state.jwt_validator = _build_jwt_validator()
 
@@ -144,6 +170,17 @@ async def _invalid_match_request_handler(
     return JSONResponse({"detail": str(exc)}, status_code=400)
 
 
+@app.exception_handler(TokenVerificationError)
+async def _ial2_token_verification_error_handler(
+    request: Request, exc: TokenVerificationError
+) -> JSONResponse:
+    return JSONResponse(
+        {"detail": f"IAL2 identity token verification failed: {exc}"},
+        status_code=401,
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+
+
 @app.get("/health")
 async def health() -> dict[str, str]:
     return {"status": "ok"}
@@ -156,12 +193,22 @@ protected_router = APIRouter()
 async def match(
     request: Request,
     controller: MatchController = Depends(get_match_controller),
+    jwt_claims: dict[str, Any] = Depends(verify_jwt),
 ) -> JSONResponse:
-    try:
-        data: dict[str, Any] = await request.json()
-    except json.JSONDecodeError as exc:
-        raise InvalidMatchRequest(f"Request body is not valid JSON: {exc}") from exc
-    bundle = await controller.match(data)
+    # Body is optional: a request whose auth token carries a cms_smart
+    # identity (see MatchController.match) doesn't need one. FastAPI
+    # caches this Depends(verify_jwt) call against the identical one on
+    # protected_router below, so the token isn't verified twice.
+    raw_body = await request.body()
+    data: dict[str, Any] | None = None
+    if raw_body:
+        try:
+            data = json.loads(raw_body)
+        except json.JSONDecodeError as exc:
+            raise InvalidMatchRequest(
+                f"Request body is not valid JSON: {exc}"
+            ) from exc
+    bundle = await controller.match(data, jwt_claims=jwt_claims)
     return JSONResponse(bundle, status_code=200, media_type="application/fhir+json")
 
 
