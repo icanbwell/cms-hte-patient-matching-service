@@ -44,6 +44,7 @@ The service listens on `http://localhost:5050`.
 | `IAL2_ALLOWED_JWKS_URLS` | Comma-separated JWKS URL allow-list for verifying IAL2 identity tokens presented via the CMS Blue Button `cms_smart` extension (see below). **Unset by default** -- IAL2 support is disabled; a request whose auth token carries a `cms_smart` identity is rejected with 400 rather than silently falling back to a body `Patient`. |
 | `IAL2_AUDIENCE` | Expected `aud` claim on the nested IAL2 identity token. Required alongside `IAL2_ALLOWED_JWKS_URLS` to enable IAL2 support. |
 | `LOG_LEVEL` | Root logger level. Defaults to `INFO`. |
+| `ENABLE_TESTING_UI` | Set to `true` to expose a manual-testing UI at `/testing-ui` for pasting an IAL2 token (decodes to a FHIR Patient) or pasting two FHIR Patients (runs real matching and shows which rule matched, or why not). **Unset by default.** Its endpoints have no auth of their own -- never enable this in a production or externally-reachable deployment. |
 
 ## API
 

@@ -43,6 +43,8 @@ from patient_matching_service.service.match_controller import (
     MatchController,
     get_match_controller,
 )
+from patient_matching_service.testing_ui.routes import is_testing_ui_enabled
+from patient_matching_service.testing_ui.routes import router as testing_ui_router
 
 configure_logging()
 logger = logging.getLogger(__name__)
@@ -135,11 +137,20 @@ def _build_ial2_extractor() -> IAL2Extractor | None:
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     logger.info("Starting up patient_matching_service...")
 
+    if is_testing_ui_enabled():
+        logger.warning(
+            "ENABLE_TESTING_UI is set -- exposing the unauthenticated IAL2-decode "
+            "and patient-matching testing UI at /testing-ui. Do not set this in a "
+            "production or externally-reachable deployment."
+        )
+
     cache = await _build_cache()
     service = PatientMatcherService(cache=cache, config=ServiceConfig())
+    ial2_extractor = _build_ial2_extractor()
     app.state.match_controller = MatchController(
-        service=service, ial2_extractor=_build_ial2_extractor()
+        service=service, ial2_extractor=ial2_extractor
     )
+    app.state.ial2_extractor = ial2_extractor
 
     app.state.jwt_validator = _build_jwt_validator()
 
@@ -232,6 +243,12 @@ async def match(
     bundle = await controller.match(data, jwt_claims=jwt_claims)
     return JSONResponse(bundle, status_code=200, media_type="application/fhir+json")
 
+
+# Registered unconditionally -- each route in testing_ui_router gates
+# itself per-request on ENABLE_TESTING_UI (404 if unset), rather than the
+# router only existing when the env var happened to be set at import time.
+# See testing_ui/routes.py's _require_testing_ui_enabled.
+app.include_router(testing_ui_router)
 
 app.include_router(protected_router, dependencies=[Depends(verify_jwt)])
 
