@@ -144,9 +144,7 @@ class TestMatchWithIal2:
         controller = MatchController(service=service, ial2_extractor=None)
 
         with pytest.raises(InvalidMatchRequest):
-            await controller.match(
-                None, jwt_claims=_cms_smart_claims("the-nested-jwt")
-            )
+            await controller.match(None, jwt_claims=_cms_smart_claims("the-nested-jwt"))
 
         service.match_patient.assert_not_called()
 

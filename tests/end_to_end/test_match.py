@@ -17,7 +17,7 @@ from collections.abc import AsyncGenerator
 from typing import Any
 
 import pytest
-from cmshteial2reader import IAL2Extractor
+from cmshteial2reader import IAL2Extractor, TokenVerificationError
 from fastapi.testclient import TestClient
 from patient_matching.api.service import PatientMatcherService
 from patient_matching.cache.cache_backend import CachedPatient
@@ -90,15 +90,29 @@ def _parameters(patient: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-class _StubIAL2Verifier:
-    """A TokenVerifierProtocol stub returning canned claims instead of
-    doing real JWKS/signature verification -- lets the test exercise the
-    real IAL2Extractor/IAL2ToFhirConverter pipeline without a live CSP."""
+def _cms_smart_claims(id_token: str) -> dict[str, Any]:
+    return {"extensions": {"cms_smart": {"id_token": id_token}}}
 
-    def __init__(self, claims: dict[str, Any]) -> None:
+
+class _StubIAL2Verifier:
+    """A TokenVerifierProtocol stub returning canned claims (or raising)
+    instead of doing real JWKS/signature verification -- lets tests
+    exercise the real IAL2Extractor/IAL2ToFhirConverter pipeline without a
+    live CSP."""
+
+    def __init__(
+        self,
+        claims: dict[str, Any] | None = None,
+        *,
+        raises: Exception | None = None,
+    ) -> None:
         self._claims = claims
+        self._raises = raises
 
     async def verify(self, token: str) -> dict[str, Any]:
+        if self._raises is not None:
+            raise self._raises
+        assert self._claims is not None
         return self._claims
 
 
@@ -118,25 +132,60 @@ _IAL2_CLAIMS: dict[str, Any] = {
 }
 
 
+def _make_ial2_client(verifier: _StubIAL2Verifier) -> AsyncGenerator[TestClient, None]:
+    """Shared body for the ial2_client-style fixtures below, parameterized
+    on the stub verifier so failure-path fixtures can inject a verifier
+    that raises instead of one that succeeds."""
+
+    async def _generator() -> AsyncGenerator[TestClient, None]:
+        app.dependency_overrides[verify_jwt] = lambda: _cms_smart_claims(
+            "the-nested-jwt"
+        )
+        with TestClient(app) as test_client:
+            cache = await _seeded_cache()
+            app.state.match_controller = MatchController(
+                service=PatientMatcherService(cache=cache),
+                ial2_extractor=IAL2Extractor(verifier=verifier),
+            )
+            try:
+                yield test_client
+            finally:
+                await cache.close()
+        del app.dependency_overrides[verify_jwt]
+
+    return _generator()
+
+
 @pytest.fixture
 async def ial2_client() -> AsyncGenerator[TestClient, None]:
     """Like `client`, but the auth token carries a cms_smart identity
     (extensions.cms_smart.id_token) and the controller is wired with a
     real IAL2Extractor backed by a stub verifier."""
-    app.dependency_overrides[verify_jwt] = lambda: {
-        "extensions": {"cms_smart": {"id_token": "the-nested-jwt"}}
-    }
-    with TestClient(app) as test_client:
-        cache = await _seeded_cache()
-        app.state.match_controller = MatchController(
-            service=PatientMatcherService(cache=cache),
-            ial2_extractor=IAL2Extractor(verifier=_StubIAL2Verifier(_IAL2_CLAIMS)),
+    async for c in _make_ial2_client(_StubIAL2Verifier(claims=_IAL2_CLAIMS)):
+        yield c
+
+
+@pytest.fixture
+async def ial2_client_with_invalid_token() -> AsyncGenerator[TestClient, None]:
+    """Like `ial2_client`, but the verifier rejects the token outright
+    (bad signature/audience/issuer)."""
+    verifier = _StubIAL2Verifier(
+        raises=TokenVerificationError(
+            "Issuer 'https://169.254.169.254' resolves to a non-public "
+            "address (169.254.169.254); rejected"
         )
-        try:
-            yield test_client
-        finally:
-            await cache.close()
-    del app.dependency_overrides[verify_jwt]
+    )
+    async for c in _make_ial2_client(verifier):
+        yield c
+
+
+@pytest.fixture
+async def ial2_client_with_malformed_claims() -> AsyncGenerator[TestClient, None]:
+    """Like `ial2_client`, but the token verifies successfully yet its
+    claims produce a FHIR-schema-invalid Patient (wrong-typed field)."""
+    claims = {**_IAL2_CLAIMS, "name_first": 12345}
+    async for c in _make_ial2_client(_StubIAL2Verifier(claims=claims)):
+        yield c
 
 
 def test_match_returns_known_patient(client: TestClient) -> None:
@@ -232,12 +281,40 @@ def test_match_with_cms_smart_claim_but_no_ial2_extractor_configured(
 ) -> None:
     """The default `client` fixture's controller has no ial2_extractor --
     a cms_smart identity token must be rejected, not silently ignored."""
-    app.dependency_overrides[verify_jwt] = lambda: {
-        "extensions": {"cms_smart": {"id_token": "the-nested-jwt"}}
-    }
+    app.dependency_overrides[verify_jwt] = lambda: _cms_smart_claims("the-nested-jwt")
     try:
         response = client.post("/Patient/$match", content=b"")
     finally:
         app.dependency_overrides[verify_jwt] = lambda: {}  # noqa: PIE807
 
     assert response.status_code == 400
+
+
+def test_match_with_invalid_ial2_token_returns_generic_401(
+    ial2_client_with_invalid_token: TestClient,
+) -> None:
+    """A token that fails verification must be rejected with a generic
+    401 -- not one that echoes the verifier's internal error detail (which
+    can include the token's own, not-yet-trusted `iss` claim, e.g. an
+    internal address an SSRF-protection check rejected)."""
+    response = ial2_client_with_invalid_token.post("/Patient/$match", content=b"")
+
+    assert response.status_code == 401
+    detail = response.json()["detail"]
+    assert detail == "IAL2 identity token verification failed"
+    assert "169.254.169.254" not in detail
+
+
+def test_match_with_malformed_ial2_claims_returns_generic_422(
+    ial2_client_with_malformed_claims: TestClient,
+) -> None:
+    """Claims that verify successfully but produce a FHIR-schema-invalid
+    Patient must be rejected with a generic 422 -- not one that echoes
+    pydantic's validation message, which includes the offending claim
+    value (here, patient demographic data)."""
+    response = ial2_client_with_malformed_claims.post("/Patient/$match", content=b"")
+
+    assert response.status_code == 422
+    detail = response.json()["detail"]
+    assert detail == "IAL2 identity token contains invalid demographic data"
+    assert "12345" not in detail

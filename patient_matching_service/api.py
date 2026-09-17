@@ -32,6 +32,7 @@ from patient_matching.cache.duckdb_cache import DuckDBCache
 from patient_matching.fhir_client.auth import ClientCredentialsAuth
 from patient_matching.fhir_client.client import FhirClient, FhirClientConfig
 from prometheus_fastapi_instrumentator import Instrumentator
+from pydantic import ValidationError
 
 from patient_matching_service.deps import verify_jwt
 from patient_matching_service.filters.endpoint_filter import EndpointFilter
@@ -174,10 +175,32 @@ async def _invalid_match_request_handler(
 async def _ial2_token_verification_error_handler(
     request: Request, exc: TokenVerificationError
 ) -> JSONResponse:
+    # Detail is intentionally generic, not str(exc): TokenVerificationError
+    # messages can include the token's own (unverified-at-that-point) `iss`
+    # claim -- e.g. "resolves to a non-public address (10.x.x.x); rejected"
+    # -- which would leak internal network details to whoever sent the
+    # token. Same reasoning as jwt_validator.py's auth-failure messages.
+    logger.warning("IAL2 identity token verification failed: %s", exc)
     return JSONResponse(
-        {"detail": f"IAL2 identity token verification failed: {exc}"},
+        {"detail": "IAL2 identity token verification failed"},
         status_code=401,
         headers={"WWW-Authenticate": "Bearer"},
+    )
+
+
+@app.exception_handler(ValidationError)
+async def _ial2_patient_validation_error_handler(
+    request: Request, exc: ValidationError
+) -> JSONResponse:
+    # Raised by IAL2Extractor.extract() when a signature-valid CSP token's
+    # demographic claims don't build a schema-valid FHIR Patient (e.g. an
+    # unparseable birth_date). Detail is generic, not str(exc): pydantic
+    # validation messages include the offending input value, which here
+    # would be a fragment of the patient's demographic data.
+    logger.warning("IAL2 token produced an invalid FHIR Patient: %s", exc)
+    return JSONResponse(
+        {"detail": "IAL2 identity token contains invalid demographic data"},
+        status_code=422,
     )
 
 
@@ -205,9 +228,7 @@ async def match(
         try:
             data = json.loads(raw_body)
         except json.JSONDecodeError as exc:
-            raise InvalidMatchRequest(
-                f"Request body is not valid JSON: {exc}"
-            ) from exc
+            raise InvalidMatchRequest(f"Request body is not valid JSON: {exc}") from exc
     bundle = await controller.match(data, jwt_claims=jwt_claims)
     return JSONResponse(bundle, status_code=200, media_type="application/fhir+json")
 
