@@ -124,6 +124,16 @@ async function postJson(url, body) {
   return { ok: response.ok, status: response.status, data };
 }
 
+// Every innerHTML assignment below interpolates values that ultimately
+// trace back to a pasted IAL2 token or FHIR Patient (e.g. an unverified
+// `iss` claim, or a JSON.parse error echoing part of the pasted text) --
+// escape before building any HTML string from them.
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, (ch) => (
+    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]
+  ));
+}
+
 async function decodeIal2() {
   const resultEl = document.getElementById('ial2-result');
   const bannerEl = document.getElementById('ial2-issuer-banner');
@@ -146,11 +156,11 @@ async function decodeIal2() {
   }
 
   const issuerText = data.issuer
-    ? `Issuer: <code>${data.issuer}</code>`
+    ? `Issuer: <code>${escapeHtml(data.issuer)}</code>`
     : 'Issuer: (could not be read from the token)';
   bannerEl.innerHTML = data.accepted
     ? `<div class="outcome-banner match">JWKS/issuer ACCEPTED -- ${issuerText}</div>`
-    : `<div class="outcome-banner no_match">JWKS/issuer REJECTED (${data.error_type}) -- ${issuerText}</div>`;
+    : `<div class="outcome-banner no_match">JWKS/issuer REJECTED (${escapeHtml(data.error_type)}) -- ${issuerText}</div>`;
 
   if (!ok) {
     resultEl.textContent = `Error ${status}: ${data.detail}`;
@@ -177,15 +187,15 @@ function renderRulesTable(rules) {
     let detail;
     if (r.evaluated) {
       const fields = Object.entries(r.field_outcomes || {})
-        .map(([k, v]) => `${k}: ${v}`)
+        .map(([k, v]) => `${escapeHtml(k)}: ${escapeHtml(v)}`)
         .join(', ');
       detail = fields || '(no fields evaluated)';
     } else {
-      detail = `<em>not evaluated</em> -- ${r.reason}`;
+      detail = `<em>not evaluated</em> -- ${escapeHtml(r.reason)}`;
     }
     return `<tr>
-      <td>${r.rule_id}</td>
-      <td>${r.description}</td>
+      <td>${escapeHtml(r.rule_id)}</td>
+      <td>${escapeHtml(r.description)}</td>
       <td>${badge}</td>
       <td>${detail}</td>
     </tr>`;
@@ -201,12 +211,12 @@ async function matchPair() {
   const resultEl = document.getElementById('match-result');
   const a = parsePatientInput('patient-a');
   if (a.error) {
-    resultEl.innerHTML = `<pre>${a.error}</pre>`;
+    resultEl.innerHTML = `<pre>${escapeHtml(a.error)}</pre>`;
     return;
   }
   const b = parsePatientInput('patient-b');
   if (b.error) {
-    resultEl.innerHTML = `<pre>${b.error}</pre>`;
+    resultEl.innerHTML = `<pre>${escapeHtml(b.error)}</pre>`;
     return;
   }
 
@@ -216,14 +226,14 @@ async function matchPair() {
     patient_b: b.value,
   });
   if (!ok) {
-    resultEl.innerHTML = `<pre>Error ${status}: ${data.detail || 'unknown error'}</pre>`;
+    resultEl.innerHTML = `<pre>Error ${status}: ${escapeHtml(data.detail || 'unknown error')}</pre>`;
     return;
   }
 
   const bannerClass = data.matched ? 'match' : 'no_match';
   const bannerText = data.matched
-    ? `MATCH via rule ${data.matched_rule_id} (${data.match_type})`
-    : `NO MATCH (outcome: ${data.outcome})`;
+    ? `MATCH via rule ${escapeHtml(data.matched_rule_id)} (${escapeHtml(data.match_type)})`
+    : `NO MATCH (outcome: ${escapeHtml(data.outcome)})`;
 
   resultEl.innerHTML = `
     <div class="outcome-banner ${bannerClass}">${bannerText}</div>
