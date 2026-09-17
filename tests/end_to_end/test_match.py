@@ -123,6 +123,7 @@ _IAL2_CLAIMS: dict[str, Any] = {
     "exp": int(time.time()) + 3600,
     "iat": int(time.time()),
     "jti": "jti-1",
+    "identity_assurance_level": "ial2",
     "name_first": "john",
     "name_last": "smith",
     "birth_date": "1990-01-15",
@@ -184,6 +185,17 @@ async def ial2_client_with_malformed_claims() -> AsyncGenerator[TestClient, None
     """Like `ial2_client`, but the token verifies successfully yet its
     claims produce a FHIR-schema-invalid Patient (wrong-typed field)."""
     claims = {**_IAL2_CLAIMS, "name_first": 12345}
+    async for c in _make_ial2_client(_StubIAL2Verifier(claims=claims)):
+        yield c
+
+
+@pytest.fixture
+async def ial2_client_with_insufficient_assurance_level() -> (
+    AsyncGenerator[TestClient, None]
+):
+    """Like `ial2_client`, but the token verifies successfully with a
+    signature-valid identity_assurance_level below IAL2 (e.g. IAL1)."""
+    claims = {**_IAL2_CLAIMS, "identity_assurance_level": "ial1"}
     async for c in _make_ial2_client(_StubIAL2Verifier(claims=claims)):
         yield c
 
@@ -318,3 +330,18 @@ def test_match_with_malformed_ial2_claims_returns_generic_422(
     detail = response.json()["detail"]
     assert detail == "IAL2 identity token contains invalid demographic data"
     assert "12345" not in detail
+
+
+def test_match_with_insufficient_assurance_level_returns_401(
+    ial2_client_with_insufficient_assurance_level: TestClient,
+) -> None:
+    """A signature-valid token asserting below IAL2 (e.g. IAL1) must be
+    rejected, not matched as if it were a real IAL2 identity --
+    cms-hte-ial2-reader's InsufficientAssuranceLevelError is a
+    TokenVerificationError subclass, so this hits the same 401 handler."""
+    response = ial2_client_with_insufficient_assurance_level.post(
+        "/Patient/$match", content=b""
+    )
+
+    assert response.status_code == 401
+    assert response.json()["detail"] == "IAL2 identity token verification failed"

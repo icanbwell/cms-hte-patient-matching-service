@@ -435,7 +435,7 @@ wheels = [
 [[package]]
 name = "cms-hte-ial2-reader"
 version = "0.0.1"
-source = { git = "https://github.com/icanbwell/cms-hte-ial2-reader.git?branch=feat%2Fcms-smart-id-token-extraction#dc6d3ab660335ede3633932faaa46ae4466db033" }
+source = { git = "https://github.com/icanbwell/cms-hte-ial2-reader.git?branch=feat%2Fcms-smart-id-token-extraction#8106a7157450040e6c115cfd0cebc5967617d64a" }
 dependencies = [
     { name = "cryptography" },
     { name = "fhirschemapy" },
