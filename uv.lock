@@ -434,12 +434,16 @@ wheels = [
 
 [[package]]
 name = "cms-hte-ial2-reader"
-version = "0.0.1"
-source = { git = "https://github.com/icanbwell/cms-hte-ial2-reader.git?branch=feat%2Fcms-smart-id-token-extraction#8106a7157450040e6c115cfd0cebc5967617d64a" }
+version = "0.0.3"
+source = { registry = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/simple" }
 dependencies = [
     { name = "cryptography" },
     { name = "fhirschemapy" },
     { name = "pyjwt" },
+]
+sdist = { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/d7/16/643f2fa3779bdb6d744ce1ec9d81c784e84863e7c5d97784bf81e6dea842/cms_hte_ial2_reader-0.0.3.tar.gz", hash = "sha256:2827baa1545bccf66fe2c6a85b6d2ce056d2ce9d5aab76852294506bd10bc108", size = 26287, upload-time = "2026-09-17T23:10:44.402Z" }
+wheels = [
+    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/f6/27/8f4315ca7a30c449345053d2444a4fbcbc1cbd14366d916449aef1fdba25/cms_hte_ial2_reader-0.0.3-py3-none-any.whl", hash = "sha256:8c1834fc5cba05bc127eba6e68f6949c03858f0ddf7f74382e28a0c066bb724f", size = 21503, upload-time = "2026-09-17T23:10:43.01Z" },
 ]
 
 [[package]]
@@ -911,7 +915,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "cms-hte-ial2-reader", git = "https://github.com/icanbwell/cms-hte-ial2-reader.git?branch=feat%2Fcms-smart-id-token-extraction" },
+    { name = "cms-hte-ial2-reader", specifier = ">=0.0.3" },
     { name = "cms-hte-patient-matching", specifier = ">=0.0.5" },
     { name = "fastapi", specifier = ">=0.110.0" },
     { name = "httpx", specifier = ">=0.27.2" },
