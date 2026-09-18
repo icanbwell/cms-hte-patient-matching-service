@@ -10,6 +10,7 @@ a deployment that isn't already trusted/internal.
 from __future__ import annotations
 
 import dataclasses
+import json
 import logging
 import os
 from pathlib import Path
@@ -193,6 +194,19 @@ def _get_ial2_extractor(request: Request) -> IAL2Extractor:
     return extractor
 
 
+async def _parse_json_body(request: Request) -> Any:
+    """Parse the request body as JSON, converting a malformed body into a
+    400 instead of the 500 request.json() would otherwise raise -- matches
+    the /Patient/$match route's json.JSONDecodeError handling in api.py."""
+    raw_body = await request.body()
+    try:
+        return json.loads(raw_body)
+    except json.JSONDecodeError as exc:
+        raise HTTPException(
+            status_code=400, detail=f"Request body is not valid JSON: {exc}"
+        ) from exc
+
+
 def _peek_issuer(token: str) -> str | None:
     """Read the token's `iss` claim without verifying its signature.
 
@@ -226,7 +240,7 @@ async def decode_ial2_token(request: Request) -> JSONResponse:
     is diagnosing *why* a token was rejected.
     """
     extractor = _get_ial2_extractor(request)
-    body = await request.json()
+    body = await _parse_json_body(request)
     token = body.get("token") if isinstance(body, dict) else None
     if not token or not isinstance(token, str):
         raise HTTPException(
@@ -277,7 +291,7 @@ async def match_pair(request: Request) -> dict[str, Any]:
     no-match here reflects what production would actually decide, not a
     simplified approximation.
     """
-    body = await request.json()
+    body = await _parse_json_body(request)
     if not isinstance(body, dict):
         raise HTTPException(
             status_code=400, detail="Request body must be a JSON object"
@@ -352,7 +366,7 @@ async def match_bundle(request: Request) -> dict[str, Any]:
     two-patient /match-pair call would, rather than introducing a second,
     N-candidate matching semantics (escalate/ambiguous) into this endpoint.
     """
-    body = await request.json()
+    body = await _parse_json_body(request)
     if not isinstance(body, dict):
         raise HTTPException(
             status_code=400, detail="Request body must be a JSON object"

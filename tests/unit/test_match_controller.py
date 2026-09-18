@@ -2,7 +2,9 @@ from typing import Any
 from unittest.mock import AsyncMock
 
 import pytest
+from cmshteial2reader import TokenVerificationError
 from patient_matching.api.service import MatchResponse
+from pydantic import ValidationError
 
 from patient_matching_service.service.match_controller import (
     InvalidMatchRequest,
@@ -19,6 +21,19 @@ def _parameters(patient: dict[str, Any]) -> dict[str, Any]:
 
 def _cms_smart_claims(id_token: str) -> dict[str, Any]:
     return {"extensions": {"cms_smart": {"version": "1", "id_token": id_token}}}
+
+
+def _make_validation_error() -> ValidationError:
+    from pydantic import BaseModel
+
+    class _Model(BaseModel):
+        x: int
+
+    try:
+        _Model(x="not-an-int")  # type: ignore[arg-type]
+    except ValidationError as exc:
+        return exc
+    raise AssertionError("expected ValidationError")  # pragma: no cover
 
 
 class TestExtractPatient:
@@ -144,6 +159,28 @@ class TestMatchWithIal2:
         controller = MatchController(service=service, ial2_extractor=None)
 
         with pytest.raises(InvalidMatchRequest):
+            await controller.match(None, jwt_claims=_cms_smart_claims("the-nested-jwt"))
+
+        service.match_patient.assert_not_called()
+
+    async def test_cms_smart_claim_propagates_token_verification_error(self) -> None:
+        service = AsyncMock()
+        ial2_extractor = AsyncMock()
+        ial2_extractor.extract.side_effect = TokenVerificationError("rejected")
+        controller = MatchController(service=service, ial2_extractor=ial2_extractor)
+
+        with pytest.raises(TokenVerificationError):
+            await controller.match(None, jwt_claims=_cms_smart_claims("the-nested-jwt"))
+
+        service.match_patient.assert_not_called()
+
+    async def test_cms_smart_claim_propagates_validation_error(self) -> None:
+        service = AsyncMock()
+        ial2_extractor = AsyncMock()
+        ial2_extractor.extract.side_effect = _make_validation_error()
+        controller = MatchController(service=service, ial2_extractor=ial2_extractor)
+
+        with pytest.raises(ValidationError):
             await controller.match(None, jwt_claims=_cms_smart_claims("the-nested-jwt"))
 
         service.match_patient.assert_not_called()

@@ -208,9 +208,35 @@ def test_decode_ial2_token_malformed_claims_returns_422_with_detail(
     assert body["error_type"] == "ValidationError"
 
 
+def test_decode_ial2_token_malformed_json_returns_400(
+    enabled: None, client: TestClient
+) -> None:
+    app.state.ial2_extractor = IAL2Extractor(verifier=_StubIAL2Verifier(_IAL2_CLAIMS))
+    try:
+        response = client.post(
+            "/testing-ui-api/decode-ial2-token",
+            content=b"not valid json",
+            headers={"content-type": "application/json"},
+        )
+    finally:
+        app.state.ial2_extractor = None
+    assert response.status_code == 400
+
+
 def test_match_pair_invalid_body_returns_400(enabled: None, client: TestClient) -> None:
     response = client.post(
         "/testing-ui-api/match-pair", json={"patient_a": _SIMPLE_PATIENT}
+    )
+    assert response.status_code == 400
+
+
+def test_match_pair_malformed_json_returns_400(
+    enabled: None, client: TestClient
+) -> None:
+    response = client.post(
+        "/testing-ui-api/match-pair",
+        content=b"not valid json",
+        headers={"content-type": "application/json"},
     )
     assert response.status_code == 400
 
@@ -318,6 +344,17 @@ def test_match_bundle_invalid_body_returns_400(
     enabled: None, client: TestClient
 ) -> None:
     response = client.post("/testing-ui-api/match-bundle", json={"bundle": {}})
+    assert response.status_code == 400
+
+
+def test_match_bundle_malformed_json_returns_400(
+    enabled: None, client: TestClient
+) -> None:
+    response = client.post(
+        "/testing-ui-api/match-bundle",
+        content=b"not valid json",
+        headers={"content-type": "application/json"},
+    )
     assert response.status_code == 400
 
 
