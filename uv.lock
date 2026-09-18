@@ -434,16 +434,16 @@ wheels = [
 
 [[package]]
 name = "cms-hte-ial2-reader"
-version = "0.0.3"
+version = "0.0.4"
 source = { registry = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/simple" }
 dependencies = [
     { name = "cryptography" },
     { name = "fhirschemapy" },
     { name = "pyjwt" },
 ]
-sdist = { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/d7/16/643f2fa3779bdb6d744ce1ec9d81c784e84863e7c5d97784bf81e6dea842/cms_hte_ial2_reader-0.0.3.tar.gz", hash = "sha256:2827baa1545bccf66fe2c6a85b6d2ce056d2ce9d5aab76852294506bd10bc108", size = 26287, upload-time = "2026-09-17T23:10:44.402Z" }
+sdist = { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/f8/99/00857e74fc24114f98a957f2924d7cabf129743fdfaa7bfc817185a1daa6/cms_hte_ial2_reader-0.0.4.tar.gz", hash = "sha256:c8283650dc4d684b687d5f5f4d5610fae862845326330fa239a1cf995c4f8802", size = 32950, upload-time = "2026-09-18T04:04:57.45Z" }
 wheels = [
-    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/f6/27/8f4315ca7a30c449345053d2444a4fbcbc1cbd14366d916449aef1fdba25/cms_hte_ial2_reader-0.0.3-py3-none-any.whl", hash = "sha256:8c1834fc5cba05bc127eba6e68f6949c03858f0ddf7f74382e28a0c066bb724f", size = 21503, upload-time = "2026-09-17T23:10:43.01Z" },
+    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/44/60/c0be942502223faaa8272f222ed2b2d54b0531dbd151ec055159e9ba9cd4/cms_hte_ial2_reader-0.0.4-py3-none-any.whl", hash = "sha256:dace0f1b468afff5b9ccb023820d64c83ab3d14b614735855929967f178dcf36", size = 25620, upload-time = "2026-09-18T04:04:56.221Z" },
 ]
 
 [[package]]
@@ -913,7 +913,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "cms-hte-ial2-reader", specifier = ">=0.0.3" },
+    { name = "cms-hte-ial2-reader", specifier = ">=0.0.4" },
     { name = "cms-hte-patient-matching", specifier = ">=0.0.11" },
     { name = "fastapi", specifier = ">=0.110.0" },
     { name = "httpx", specifier = ">=0.27.2" },
