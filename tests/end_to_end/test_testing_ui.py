@@ -327,6 +327,37 @@ def test_match_bundle_requires_at_least_two_patients(
     assert response.status_code == 400
 
 
+def test_match_bundle_rejects_more_than_max_patients(
+    enabled: None, client: TestClient
+) -> None:
+    """_MAX_BUNDLE_PATIENTS caps pairwise matching's O(n^2) cost -- without
+    this, a large pasted bundle could turn this debug endpoint into an
+    accidental load test."""
+    entries = [
+        {"resource": {**_SIMPLE_PATIENT, "id": f"p{i}"}} for i in range(51)
+    ]
+    bundle = {"resourceType": "Bundle", "entry": entries}
+    response = client.post("/testing-ui-api/match-bundle", json={"bundle": bundle})
+    assert response.status_code == 400
+    assert "50" in response.json()["detail"]
+
+
+def test_match_bundle_labels_unnamed_patient_by_id_then_position(
+    enabled: None, client: TestClient
+) -> None:
+    unnamed_with_id = {"resourceType": "Patient", "id": "no-name-p1"}
+    unnamed_without_id = {"resourceType": "Patient"}
+    bundle = {
+        "resourceType": "Bundle",
+        "entry": [{"resource": unnamed_with_id}, {"resource": unnamed_without_id}],
+    }
+    response = client.post("/testing-ui-api/match-bundle", json={"bundle": bundle})
+
+    assert response.status_code == 200
+    labels = [p["label"] for p in response.json()["patients"]]
+    assert labels == ["no-name-p1", "Patient 1"]
+
+
 def test_match_bundle_reports_pairwise_results(
     enabled: None, client: TestClient
 ) -> None:
