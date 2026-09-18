@@ -12,7 +12,7 @@ dependencies = [
     "python-json-logger>=3.2.1",
     "pyjwt[crypto]>=2.9.0",
     "httpx>=0.27.2",
-    "cms-hte-patient-matching>=0.0.5",
+    "cms-hte-patient-matching>=0.0.11",
     "cms-hte-ial2-reader>=0.0.3",
 ]
 

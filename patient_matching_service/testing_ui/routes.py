@@ -107,26 +107,45 @@ def _build_rules_report(
     """Shared by match_pair and match_bundle: one row per Table 2 rule,
     evaluated or not, for the troubleshooting table.
 
-    `field_values` (the normalized values actually compared for a field)
-    comes from cms-hte-patient-matching's RuleEvaluation.field_values --
-    guarded with getattr since older installed versions of that package
-    predate the attribute.
+    `field_values`/`candidates_retrieved`/`blocking_criteria`/`step` come
+    from cms-hte-patient-matching's RuleEvaluation -- guarded with getattr
+    since older installed versions of that package predate them.
+
+    A rule can now appear in `result.rule_evaluations` even when blocking
+    retrieved zero candidates (candidates_retrieved == 0, field_outcomes
+    empty) -- that's still "not evaluated" in the sense this table means
+    (no field-by-field comparison ran), just with a real reason instead of
+    the `_not_evaluated_reason` guess below.
     """
-    evaluated_rule_ids = {ev.rule_id for ev in result.rule_evaluations}
-    rules_report: list[dict[str, Any]] = [
-        {
-            "rule_id": ev.rule_id,
-            "description": _RULE_DESCRIPTIONS.get(ev.rule_id, ""),
-            "evaluated": True,
-            "matched": ev.matched,
-            "match_type": ev.match_type,
-            "fuzzy_fields": ev.fuzzy_fields,
-            "negated_by_suffix": ev.negated_by_suffix,
-            "field_outcomes": ev.field_outcomes,
-            "field_values": getattr(ev, "field_values", {}),
-        }
-        for ev in result.rule_evaluations
-    ]
+    evaluated_rule_ids: set[str] = set()
+    rules_report: list[dict[str, Any]] = []
+    for ev in result.rule_evaluations:
+        evaluated_rule_ids.add(ev.rule_id)
+        candidates_retrieved = getattr(ev, "candidates_retrieved", None)
+        if candidates_retrieved == 0:
+            rules_report.append(
+                {
+                    "rule_id": ev.rule_id,
+                    "description": _RULE_DESCRIPTIONS.get(ev.rule_id, ""),
+                    "evaluated": False,
+                    "matched": False,
+                    "reason": _zero_candidates_reason(ev),
+                }
+            )
+            continue
+        rules_report.append(
+            {
+                "rule_id": ev.rule_id,
+                "description": _RULE_DESCRIPTIONS.get(ev.rule_id, ""),
+                "evaluated": True,
+                "matched": ev.matched,
+                "match_type": ev.match_type,
+                "fuzzy_fields": ev.fuzzy_fields,
+                "negated_by_suffix": ev.negated_by_suffix,
+                "field_outcomes": ev.field_outcomes,
+                "field_values": getattr(ev, "field_values", {}),
+            }
+        )
 
     for rule_id, description, required_fields in _ALL_RULES:
         if rule_id in evaluated_rule_ids:
@@ -143,6 +162,22 @@ def _build_rules_report(
 
     rules_report.sort(key=lambda r: r["rule_id"])
     return rules_report
+
+
+def _zero_candidates_reason(ev: Any) -> str:
+    """Explain a rule/step whose blocking search() retrieved nothing --
+    real data (which value blocking used) rather than _not_evaluated_reason's
+    guess, since we now know blocking ran and came back empty."""
+    blocking_criteria = getattr(ev, "blocking_criteria", {}) or {}
+    criteria_desc = ", ".join(
+        f"{k}={v!r}" for k, v in sorted(blocking_criteria.items())
+    )
+    step = getattr(ev, "step", "flat")
+    step_desc = f" ({step} tier)" if step != "flat" else ""
+    return (
+        f"Both patients have the required fields, but blocking{step_desc} found no "
+        f"candidate matching on {criteria_desc or 'the blocked field(s)'}"
+    )
 
 
 def _get_ial2_extractor(request: Request) -> IAL2Extractor:
