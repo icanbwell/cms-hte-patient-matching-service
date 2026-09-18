@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>patient_matching_service -- Testing UI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+  href="https://fonts.googleapis.com/css2?family=Quicksand:wght@300;400;600;700&family=Open+Sans:ital,wght@0,300;0,600;0,700;0,800;1,300;1,600;1,700;1,800&display=swap"
+  rel="stylesheet"
+/>
+<style>
+  :root {
+    color-scheme: light dark;
+
+    /* b.well brand palette (see brand style guide, sections 2.1/3.1) */
+    --color-brand-primary: #2e3586;
+    --color-brand-dark: #191d4d;
+    --color-brand-success: #6cc63f;
+    --color-brand-accent-lilac: #6c60ed;
+    --color-brand-accent-orange: #f56345;
+    --color-brand-accent-yellow: #ffe249;
+    --color-neutral-dark: #494949;
+    --color-neutral-mid: #7f7f7f;
+    --color-neutral-light: #f7f7fa;
+    --color-neutral-white: #ffffff;
+    /* Not a brand color -- reserved for error/destructive states only */
+    --color-error: #d92d20;
+
+    /* brand-success at raw hex fails AA contrast as small text (~2.4:1 on
+       white); this darker shade of the same hue is used wherever the
+       color needs to be legible foreground text rather than a fill/tint */
+    --color-success-text: #1a7f37;
+    /* same rationale for accent-yellow used as small warning-banner text */
+    --color-warning-text: #664d03;
+
+    --font-display: "Quicksand", -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-body: "Open Sans", -apple-system, BlinkMacSystemFont, sans-serif;
+
+    --border: var(--color-neutral-mid);
+    --bg-muted: var(--color-neutral-light);
+    --ok: var(--color-success-text);
+    --bad: var(--color-error);
+  }
+  body {
+    font-family: var(--font-body);
+    font-weight: 300;
+    color: var(--color-neutral-dark);
+    margin: 0;
+    padding: 0;
+  }
+  main {
+    max-width: 960px;
+    margin: 2rem auto;
+    padding: 0 1rem;
+  }
+  /* Blue header bar, matching kill-the-clipboard-scanner's app chrome */
+  .app-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    background: var(--color-brand-primary);
+    color: var(--color-neutral-white);
+    padding: 0.75rem 1.5rem;
+  }
+  .app-header img { height: 2rem; width: auto; }
+  .app-header .app-name {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 1.1rem;
+  }
+  .app-footer {
+    border-top: 1px solid var(--border);
+    background: var(--color-neutral-white);
+    padding: 0.75rem 1.5rem;
+    text-align: center;
+    font-size: 0.75rem;
+    color: var(--color-neutral-mid);
+    margin-top: 2rem;
+  }
+  .app-footer a { color: var(--color-brand-primary); text-decoration: none; }
+  .app-footer a:hover { text-decoration: underline; }
+  h1 { font-family: var(--font-display); font-weight: 700; font-size: 1.5rem; color: var(--color-brand-dark); }
+  p.lead { font-family: var(--font-display); font-weight: 400; font-size: 1.05rem; }
+  p.warning {
+    font-family: var(--font-display);
+    font-weight: 400;
+    background: color-mix(in srgb, var(--color-brand-accent-yellow) 25%, white);
+    color: var(--color-warning-text);
+    border: 1px solid var(--color-brand-accent-yellow);
+    border-radius: 6px;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.9rem;
+  }
+  .tabs { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
+  .tabs button {
+    font-family: var(--font-body);
+    font-weight: 600;
+    padding: 0.5rem 1rem;
+    border: 1px solid var(--border);
+    background: var(--bg-muted);
+    color: var(--color-neutral-dark);
+    border-radius: 6px 6px 0 0;
+    cursor: pointer;
+  }
+  .tabs button.active { background: white; color: var(--color-brand-primary); font-weight: 700; border-bottom-color: white; }
+  .panel { display: none; border: 1px solid var(--border); border-radius: 0 6px 6px 6px; padding: 1rem; }
+  .panel.active { display: block; }
+  textarea {
+    width: 100%;
+    box-sizing: border-box;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.85rem;
+  }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  button.run {
+    font-family: var(--font-body);
+    font-weight: 600;
+    margin-top: 0.75rem;
+    padding: 0.5rem 1.25rem;
+    border: 1px solid var(--color-brand-primary);
+    background: var(--color-brand-primary);
+    color: var(--color-neutral-white);
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  button.run:hover { background: var(--color-brand-dark); border-color: var(--color-brand-dark); }
+  pre {
+    background: var(--bg-muted);
+    padding: 0.75rem;
+    border-radius: 6px;
+    overflow-x: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  table { border-collapse: collapse; width: 100%; margin-top: 1rem; font-size: 0.85rem; }
+  th, td { border: 1px solid var(--border); padding: 0.35rem 0.5rem; text-align: left; vertical-align: top; }
+  th { background: var(--bg-muted); font-family: var(--font-body); font-weight: 700; }
+  .badge { font-weight: bold; }
+  .badge.matched { color: var(--ok); }
+  .badge.not-matched { color: var(--bad); }
+  .rule-pill {
+    display: inline-block;
+    background: var(--color-brand-accent-lilac);
+    color: var(--color-neutral-white);
+    border-radius: 999px;
+    padding: 0.1rem 0.6rem;
+    font-weight: 700;
+    font-size: 0.8rem;
+  }
+  /* accent-orange at 3:1 contrast fails AA for text this size (WCAG 2.0
+     4.5:1); used as a border flag instead, with neutral-dark for the text */
+  .skip-reason {
+    display: inline-block;
+    border-left: 3px solid var(--color-brand-accent-orange);
+    color: var(--color-neutral-dark);
+    padding: 0.05rem 0.5rem;
+    font-style: italic;
+  }
+  .outcome-banner {
+    font-family: var(--font-display);
+    padding: 0.75rem;
+    border-radius: 6px;
+    margin-top: 1rem;
+    font-weight: 700;
+  }
+  .outcome-banner.match { background: color-mix(in srgb, var(--color-brand-success) 20%, white); color: var(--ok); }
+  .outcome-banner.no_match { background: color-mix(in srgb, var(--color-error) 12%, white); color: var(--bad); }
+  .field-row { margin-bottom: 0.6rem; }
+  .field-row label {
+    display: block;
+    font-weight: 600;
+    font-size: 0.8rem;
+    margin-bottom: 0.15rem;
+  }
+  .field-row input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0.35rem 0.5rem;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    font-family: var(--font-body);
+    font-size: 0.85rem;
+  }
+  .field-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+  details.advanced-fields {
+    margin-top: 0.5rem;
+    border: 1px dashed var(--border);
+    border-radius: 6px;
+    padding: 0.5rem 0.75rem;
+  }
+  details.advanced-fields summary {
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: var(--color-brand-primary);
+  }
+  details.advanced-fields .field-row { margin-top: 0.6rem; }
+  .address-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem; }
+  .address-fields input { margin: 0; }
+  .prev-address-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.4rem;
+    border: 1px dashed var(--border);
+    border-radius: 6px;
+    padding: 0.5rem;
+    margin-bottom: 0.5rem;
+  }
+  .prev-address-row .remove-row {
+    grid-column: 1 / -1;
+    justify-self: start;
+    background: none;
+    border: none;
+    color: var(--color-error);
+    cursor: pointer;
+    font-size: 0.75rem;
+    padding: 0;
+  }
+  .btn-secondary {
+    font-family: var(--font-body);
+    font-weight: 600;
+    padding: 0.3rem 0.75rem;
+    border: 1px solid var(--color-brand-primary);
+    background: var(--color-neutral-white);
+    color: var(--color-brand-primary);
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.8rem;
+  }
+</style>
+</head>
+<body>
+<header class="app-header">
+  <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAlQAAADYCAYAAAAtdX2jAAAf0UlEQVR4nO2dTXIUybJGM7GeP3oFV6ygxZSJpBUgVoCYYwasQLACwIy5xAqkXoGkCVOqV0C9FbTeCuKZqz25iVolVVX++E+cYybT7ba+qsysjIjP/fPwaBoAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAaJqmlLJfStnhYQAAAEAEfrO+gFLKbtM08rOnv+VHOGiaZml8eQAAAAC+BFUp5bEKpv2egJJ/BwAAABCW32bIPol4+kN/Y+MBAABAOkYTVFrz1LfuREABAAAApOe3IYXjveyTCCiyTwAAABWxIply0LbtZRP3fvraZr9t23ZUQVVKOepZd13hOAAAAFTCrWTKfuQ66PJrXffg+9kkQ3Wy7YcAAABALO7ZhR+SMvH9mLdNAAAAABfZms6BCr8Lv/z7fiav60ZQAQAA1Gnd7WbZhV/+ez+dGJz9fhBUAAAAicm2C7/cUTjeOABBBQAAkJBSyln0wvFI94OgAgAAyMlhk4vDxjGPrC8AAAAAIDoIKgAAAICBIKgAAAAABoKgAgAAABgIggoAAABgIAgqAAAAgIEgqAAAAAAGgqACAAAAGAiCCgAAAGAgCCoAAACAgSCoAAAAAAaCoAIAAAAYCIIKAAAAYCAIKgAAAICBIKgAAAAABoKgAgAAABgIggoAAABgIAgqAAAAgIEgqAAAAAAGgqACAAAAGAiCCgAAAGAgCCoAAACAgSCoAAAAAAaCoAIAAAAYCIIKAAAAYCAIKgAAAICBIKgAAAAABoKgAgAAABgIggoAAABgIAgqAAAAgIEgqAAAAAAGgqACAAAAGAiCCgAAAGAgCCoAAACAgSCoAAAAAAaCoAIAAAAYCIIKAAAAYCAIKgAAAICBIKgAAAAABoKgAgAAABjIb0P/QBZKKY+bptnVH/nff+jvpvfvHmKpP8KV/r5smua6bdvFRJcOAAAAxlQrqEop+03TyM/eBoLpIXb0p9G/LRzr53XiSoTVX/K/27btxBcAAAAEphpBVUoR0XSoAqoTO3PTibjumpYqsv5UgXVtdF0AAHO5AN1v4T+9IPQ+uoz/tQalZP3BHe26/2HRFMuMHLRtK2JjqIh6qUJqnUFrzbmKq3PEFQBERefeXS2d2J0wiBVxtexl/QetGdkwWLdHW7893U/btm2VgqqUIsLpSIVUBBG1itOmab4yQQBAEAHVlVDsj1RCMURk3WT+a58/EVTjUJ2g0pqoN5qNyoREX59FYJG1AgAvBHEArrvMf9u28rsqEFTjUI2gKqV02Siruqg5JwYRVp8QVgBgQXAHoBNX1WT+EVTjkF5QlVIkKvoYcFAPJZWw6m0WmJtl27Ziq9ZcHNzflfpLTUqtbT702by1+Oy2bd83TtH59k2iwFUy/x+y16siqMYhraBSa+840cAeJKw8T8IbRLw/DD5adgn93tRnz+z3dlg9RLcDtRq7WTPeJwYfvWjb9mnj83kcJw5cUwWot0FQzSuoHkWKHEspMtFdIKZukEj6uJTyQ6PHkGgvLotsyOPIz22TBbGU8r1pmu+aeVlXTDUqviQL/LeMPRW/2Xlu9LlfG3/vjQQ6MufuZJ9HJagrpbzXDCXAVoQQVKUUWQhkcEu0BL8ik91ZKUV+ok58VouJZGzSZqRUSJ1sKKJWcaSLzsesi47el5XIdlEwXZGQug3CCnILKhEIpZQLjZJTTuIjIgvBdxWf0bBaTA4zigOJtDUjNYaQuo28XxdqIWbDSkwtrE9NkFIKnWtrE1KrhJXMpQTwkEZQvdRFofZaqU0ng4+arQojFAxtPyGN7ae2+Fl33NGE7KqoSvPsFCm6rsru03dGAlZKKX5FRKXY3PKe1ywwIYmgkuggjChwxqHaM5HE6NfKamZGRQW0LIpziRz5vLMsUbwumrs1ZWhVEHe1dXA3+5qtCr35B+bBs6CCYdwssIEsQGy/YVwYCYKTYMJ9FWa1U3Pbfb2slGQzyb6svwGIbBXcC4IqP2IByqLnOtuH7bc9uvvVsqYp8oYI6w0K0pZiNrT2TcR3lEDLY7Yqm9UNI4GgqgOxZS68iypsv83Ryd3adrux/5qg1GL3qT1rlcnMQmd1S4YP4BcQVPXQFRJ7nkyx/TZABbJFE8q72A1cZ2Jp983STFIFgLwr3oOqKLxVC5DnCT9BUNWFa1GF7bcxYtt4mtDfBF1g0tp9vZ2fWHzTWIBu51OYHwRVvcXqXicBdvutgQoXq23+qzA7B29bMtt9Bjs/a8R1kArzgqCqE8+iCtsvdluRaFmqlHZfT0x5HONZ59MMu11hAAiqenEpqrD9wh+bY3l8yzaks/t6O/lcje1K5lPrDSJgCIKqbrpJwFtGAdvPr021Dt6syGrsPh3LZ87fj8xIixpEVaUgqMCjqLK0/SL0U/KeAZIdfzzHme2+ns0X4dln7/2HoK0QBBUIu576CGH7hbX7Iom+VHYfNVOucFlOAdODoIKOfWfN6qxsP9diJYDd17HXOEYXu0x2HzafT1FFtrAiEFRwu1ndUeW2n3e7KkLmp7NPPdnIXoTz6HafHj3EDjO/XdU9jwMYEQQVuPT/sf1iZtACib/DDHafBkBegiD4N7uOTjOAiUFQwW08HWeC7RfT7ut43jhEA4ad6JlXvQ8vYxXuz9aGangL24GgAs/nsmH7xcn4RLL9wtt9vfYIEAMXmX+Ylt8m/vvZuFzx7yXa9Vx3sw3HpRRZABaWtl8pRT5/10i8fGp8Ecnu6z/H08YXGey+j4nmHBGZiwrmVqmnejrXgdgwP+26/2EppTR1CacrHeTLdUWFWjI7WiD6h/72GKGvy6Jt26eWF6Cp8o813vsd79aPJh4iyl80TtAswXejj/99jMW0lHIYNDvVCadt5laZR7udmbKD1NK2HcJp27av5voww3X7oG3bVQmIcPfTtu1aWglB9d+BLvbSn23bnk8wgR9qPUnElO+Htm3fVyoknmhxvDmGwtKNkBgDbQ3yNqqwVGHxI1CgtuzNrZcTzK37mrmNNLe+GHudWQWCal5BVXsNlQzwV23byoT/aoqXXCIwESSa7Xiq9oeLxWWDw27NIkF2+4W2+zzWfkW3+06CiKlTzVJIUPJuimyFzq2fdG59ohb9dZB6qgjfIWxIrYJKBrt42TLgZ6vv0AnglQ7+D0EGvwz8Y+NrqHq3X8DdfS53+0Xf3VdK2XcmTm9zrfNaF6COLqLuC7xEuOncKnOsi8zyCnYczKkwAbUJKhngBzrYLYutr9VG64SVd450Mrei9t1+nhfRSLv9ou/u89wiQbJDTzQbf208t0qdksyt7xwHrW+dzC0wIrUIKhlUIqImKZQbSVi5ua4VHFdq+71p7HGRKUsgCsPafVpD53EBlnmrs/VciRexA3tWoEc8C2TYghoE1bkOeG9bt2+nqw+cR1T7xlmqrzUKgQR2nwvbL7Ldp9k9bxaRzFPvNEh1a69p0Crzqsyv3q7Tek6FkckuqGTAy44KryLlrohKBr6ZHfkAxxXafjvGDfk8ZHYy2H5vAtt9kp3yYJl2yPwkQspr5udfqDPx1HAeWYU3oQwDyCqorqMN+A6t7TpwOPBNIypj28/Scstg93kQhyHtPhWhHmzn27v3vAZ9D2WrpHWFZKy8QJYqERkFlSy8rmqlBgx8jzal5eRele2XyO4ztf20EaZVhuc8UXZKWhS8ipLxX4UG2rIT0Mt9kKVKQjZBtdB2COGip7vQFgunDq2bkLUoAW2/LHafte33PKLd5yw7JULKU2ZnEFpTe+BEVJGlSsKjhJkpDwMku6gymeQrtP0y2X2WIjGk3afX/diJmPI2B41ZXuFhzfAinGEAWQSVDIgwxecJRNWR4WdXYfsltPtMskXB7b5jJzafp7lnClH1ovLMP4xEFkEVskhyQyTd7uUeH+tCZUEttl82u8/K9otq98nmD+sF9jSTzbcKrbed7cDieyBLFZxHSVojeBEak6GTs5f0tJkdVZHtl9HusxCLUe0+6+9fxlh6MdWhWTjrXeFZg6hqiC6oJAq0HgRziyoPkZR1X6HUtl9iu2/WrFFUu0/HleXimrqEYhWajbPcHS5ZcERVYCILKk/iYjbatpWJ2ouItBr8p8ltv+yT6lxiPKTd56AYXYrQvXUVnwvrNcXFQeJQn6AK3w9lAHKgsocJb8/iQ/V7P09c52Bt9zRJRGNUu89yURUx6LGp8GTZ4FKKHP7+sZTyvWmaH8aXlD2YSk277n9YSimNHy717LtqkUnAweGa0oD098ruf9J7VrvPelKfa+GebHeVWidnjQ2/bxvsaebu78aGa+3j5yFYGx19tpJh3tdgcNdJW4rbvBhL1Bqu2wdTNNe2up+2bdvMGapqiiUfKKK8dLDbz6rW5zzpDsdaItSpbb+odp/lYbmfM4kpmZtKKW9LKSeafRKheqHtKPadiimzzD8MJ6KgOq1hV98G1p81hxXaflMu1jXYfZO+OyrUrHqlRbX7rh3VZm5r3YlIf19KudBMhoioj/ouRNrkUUtQlY6IgsqDiHCBplQvK46mhi5e3oRA9t19c4kHywVpqMjfN2w/E6YmVfp0afbprJQiFvkPtXi77FNkRBxa9yCDCgTVZaaUdPAWAh2WAiCb7Vdbs9SpbL+Qdp8uohYLqWW2d13r7mfhuGafLjT7JGMmo/iILgqrJJqg+mx9AU5rqZY11lEltP1eGopyM1E15h8z7uH0Z9BF9LOX7JR8f5p96qy7v9W6kw0obyvK4FJHFZBIgmpZ03beDbF+LpYRYgrbz9Duk12L54bPcWxhGtnu+6Ox4dRJ4fiPQIXjU1OLcExFJEFlLRo8g+0X3/azyk5cJrP9Qtp9hovobGUUvcLxjysKxzNad9uCoApIJEFlFUG7R3c9LmtMTyey/Z5bjivj53iYwO77GlRUTxaM9ay724XjYt1RI7TG85vqu4G6BZXYEta72bxjmcGzTsuHtv2MhUD/vbkyuoaxxKTVM+xs060x3NV1OXHh+HHiwvGp4ZkFI4qgQkw9jNVi6CE9HX2336ETmyq67Wdm9wVdPBfb2H0Ujs8GgioYvzUx+Mv6AgJg2uxUJlmrnULyuaWUcyNh8nyEBdXU7uuQxbWUsjASyIdDiqOD7+4T9r0GqrqLd1+L5uU3C/08sNMvGGSokqCR5nXFWSor2+9oSHbFkd1nvcHhea12n6esNoXjAPkFFc0816PmI3ksF7XDBHbfz3/fxLT9Itt9Vi0TFhSOu8Y6SIWMgoru6CEElWlheuDdfi7svltjzeo9OqzU7rMaP7LrjsJxv1hv9oGEgors1Pr8X1N3NPVnpOyKQ7svqu1ndRByZLsPAEYGQZULF8dHGBLN9rMSU9LM8b53JVo/Kqsje86TBSTgDHpRxSKCoIL1qbmGKqLt58ru82D7bdqGwvDInrEzotg7AMFBUEE2Qth+ju2+jihn+7G7DwBcgKCCbESx/ayEwLrNHKPYfhnsPgBIAIIKUhHI9rOy+746Px9y7e7ziew+gNvI+PvEpqxYIKhyQR1GANsvgN23zX87JuuKTew+yMBSx9q7pmkO2n942rbtO1oGxQJBlQt2CsWw/bzbfdbtE9Z9Pth9EBE58udD0zQvmqZ50rat/Lxo2/ZT27acWxuYCGf5WZxxBYFbNjg42+80st3Xt/1KKUuDs9tubL/7ejxh90Eg626hx/xIQFP1TuzsRBBU4Pv4io6FQ9vv0Mr2W9XnKZDd1///vG38HTqdze6zEK4wLjLmJcP0l/4WAeUm0ARflp/Zgklzs7WhhsqH7XeUwO7zbvtls/s4ESIel1o4/kqtu9/Vunsv1h1iqj42yVBZKm0iN//2qKtIzNj2e6kTrSe7b6vaDI+2H3YfGLC8Zd1R6wSDMlSWC+ae4WeHoJRiWpDutDbAarffri76nuy+IZkmb7v9stl9Ahkqv4XjknmicBxGFVTiC1tBYbrvZ+QqO+V4t5+VEFgOFLwSlVuw6nm9afK9T/874d+G+1noRhKx7qRdgXCg1t051h1MYflZRlA7EvHTk8NtFs9jdsqj7fc8ohCQRaWUcm1Qo/cv208zsTsJM55kqOaBwnFwkaGyHvBW0b17jK0kD++Ge9svsN3nzfZ7mdDu8z6GIkPhOPgTVA6K8Kyi+whYi01LOziK7RfV7jPvPv/AP2d5j1xmeRN0HD/QjuOnOBzgrVO6ZRS1f1ehL7gQm24XA+Oz/V5Gt/s6NDtzbXm2X2K7r3tPvdYieoXCcQgtqKwXzvv6+1SJikzrDJX1e+Ha9ktg93mx/bLafVHGkSUUjkM6QWW128d6d49nrEVmhG7A1rZfdLvPi+2X1e7zMr96ocsqS9uCA21bILvvXql1h/CEFEfPWNdRSfr/SAaV8XW4QDMf1iLT+p2IsNtvmeG7Md7t9z6r3dejVqFwc0xLd2QLtU4QlXbT/0Mp5W/jI04k6n5i+Plu0EXm2Pgy5KgFywzQWogQb5rmpKmL0b+bUsqJg6zo3Hbf7zMGSDK/ZoaO4zNSSimNDQdTbGSzuh/Z3TCF5echI7GjQqJqnGSnPLwP6+Je9AWp+6nNlprtvVHrPFuWisJxqIZHgeoo+rxRQVEzHx0chhyhfsrDbj8LprrXmp6hxXwXJUC5CwrHoWoiZqgaFRK12Tc/KaXsO7FdxtxBNgcegoHQ91qZMJ1rd1/Ed5TCcYChNVRCKeW7bAlv7AlRvzMmmpmT5++hJ5ccGBqmw3MlNSqT1/1UVI8mO8rkfLdZcVCnehcUjgeEGir/NVSeMhMnFTb7FKvPwz0vIompyrIrU99jDc/QMltk/XxlXMtOajqOA2zAo6ADvkOiuLOmEjQz4MHq8ySqs1oq3rt6e5kDMtl9Xt7Rr9rz6ZODI8cAcgsqzUx4GWjSjfqkkropT/cZckHVHmYhCum3ZSYhYL3op32/DY/56TjWY34AYIYMlbcMxVHmVgo6uXnKxJ1Hs/syiEFn95b5GXoQjNbNiy/YSQ0wk6ByGOlLVOXFDhtbTF04K1L1JKYjLpbh7y257Wdp93V8Nv78xzWJKnE5ij1vrZ8D2GWoPAz625xkElVOxdTSwWIT3VKZkjm/m6xNPs3fbydlFbu6CSY1TmpTrx1kJcFYUHl8AURUeao1yiSmGj2wNAPmi+ZEVuycQjHjM/SUwfzqpJwi/HwaoAXI3GMXvAkqjaI8iiqZBM6ipqt1kEuvqccOrRCP33fkRTPsPen4z3ZUige77wYdax5qFVOKKkdiKlOgWjVDM1SeX4RDESWRdquIANSJy8sg927xbk1S2++80izKmLgQUw7nVxFVaWqqSikfHc2z0kDWg3AGa0HlOEvVaAPM7xF2AGpbhO8OvPxViPj41OTC2+IZ0TLI9AzdZS4dZakEmaMuIgWp9wStngrAvYhmcJChivBCyA5AEVYyIXgd4BdOOqCv4l1Cj9/V4hnxXpLZfm7sPsfz601tZylFHICodameglayU4l4NOKk6j170U0E8rPjREhJ5uyHswG+amef1yzk1iSz/SyFQBbbz+U77ixL9fOEikh1qtqSQMSUt+yaJ7EMTjJU3YsRYXGSLNUPnQz2jYXUscPC87uY/YDYGfGYkdjmXEXLsZfhGXoXhnKunjcOdS498pyVkiBa2z94m2vlaB9PQhm8CCqd0D0O+vsmA8lWyYTwduqslaTI1dr7O5CQEi6Tn+eVwfYzFQJJbD/Jwi6cZ1M9jsPH2qrmwlNJhcznOt9KXaqb6+oh6yXZqWQ8miA17XHQ38eORi8irG4K2MeYGHRAd+0b/tajY9xGcvcM+szZqSy2n4cMUXRh6uEZPoTngLUrWDetr+oJKe+lFBlrUqunnajwT6KCDEjEKtH3X/rPl/eIMvn5H/XodwNloB4a9FvVxr3+tve4X6/w5dnVIKH9+tte/5kuvzy7Gi1VrhOw58n3IbvvqfVFJBj3Tz1nqDq0XEAy3N5ZapuVWc79VNvxpdNs1F1Z/4M5PkjOs2lsOJjC2bC6n7ZtWxNBFWzQw4iD/vW3PRGVb9ROvctClQH29cuzq9MN/t6x/r3bArU7S07+3qCBqxG1p8OnZxG9YyP2ufOdqvfZfU+aAGgR+Pdgz3mhtvTlWKJVSzREPO2tmB+8cq3ifZbaKQRVAkEliH3mcEcFTDDoNRt1vEFvFxFA7748u1rM8ffWQW3ZKJNynydeClu1WaKn/j6bFAd7ttN+QUsSpNA66tyy0HMgF90/32d/9Uow5Pcfuq5EEpRmARCCKo+gummqGXSRqp1X67ZJUCvuZAvxfFOf9eXZ1fkdYmrb7c3y904rsv1c2H0JbL8Qdl8fXICQzGb1dSCo5hVUjya8gGX2guaknG4oprYVPze9bF5/2zsaSUwJJ/2/V0FRtatt/ipKXGTLsuzuW0XbtlJWEe66K0YCyBfWFwHTMlmGKoENUCMLLSZ8cPfJCOKnz4F+9mh/b5u6qoC2nxu7L/B4D2X39cEFCMUkRdoPQYYqSYaqdyHvArZSqDaC2mAr7/GINXJnW9qGqzhJvHW+n1lxJaY8Zs0SXu9P9Psn6+GfD8l7+cFcgkqRQU962n8EtW4R+s7IWQjJCo3Zu2ZnS+svku3nUvwFs/1C2n19dKGmtMJ3CYXYs1ABswgqzXrIoKeRmd8i9E0WlggHo0r7hsxNPj1nVlyKvcDXeS9a8+jyHMLKkTk1pJ0MvjNUXeR6EGjBqoW1d/T1kAZ63tnVTFrGRdZ7ZkW2xEfAsyjdiLZtJWBFVAWsR4U8zCaoBERVCjHVBOovtpvU9nMt+oJk+ryL0m1FFbU68epRIQmzCipBJzE8/0DtEfpsmfUJI6iCiIEImRXXoi/A9W0L9aq2XG9Sjwq5mF1Q9RatpwEWrsyZqW1FbSRBlXGxjZJZ8Z7piyBKN0azIl0bErARUzz7SjERVAL2Xzibr6OGyMuzGPAs9qJk+qKI0qGiipqq+Wum0r5X4FhQCYiqcGKq+fLsKpKgWiQUA5EyK17Fn9frGlVUUag+G4gpsBdUPVElJ72j7Kc/7HisiDXKd7VItujKIhnl2XvO9EUSpYNQUfXB+joSI5sA2M0HPgSVQIp6UhYTHP7qdaHssxyYTfN4jx5FXrRMX2q77y60sSR9AKc5tggxBb4E1a0UNY3QxuN0oh0nEWozPicUAx5FXjQR6O16ZkGz01JXFcmy98pNo+qoZ0DOxLKpEDeCqqNt20+6A7DKL2TkAS8/o4sCzfzI9+SV5Uiiz9PiKwGHp+uJ2uSzGrvvNpqZk7k14nvkrV4qQlDZWAWF7XRtI7wFub4F1a2BH+Wl9WjxTf3sPjgWva++PLu6Trb4hlwE9T30MglWZ/etcAKkVxUW4OZ8CriTb5HsMxcT/u3Bn+lSUN2yAF84Xrg9ca2nmouYmvx5qWB54Wix7IupyxEPnl1ksDCN8XLtXq7Di9CVoJXO6g+zVCH1LmD3c4sM8WWysof4guqOJqCeLSZr5AV+Ovep5l+eXXk7n1HE1NiZOQ87pC6DRcW3+eTgHZHPJ+PdQwIvKaomW3UvNyUoGlxFxCKz/TXZ/fyZRlD1slVSAEhE9e/ISc6MMjvqoCeqlgnFVCforSfT0MWvGtVbZ4cke2st6jxnq6R1DUHrv4PUiFmpn2ggtshiq7f/rHOXM9/PeSpB1SFflEZUtduAnb33xEOhsooqEbsLqwL8KcRUD8t6k0/Bs1M3aPbU6j5k3kAsrBe0irAyn1OcBKnhx50yZzDzIclnbJVta5vAlFKOmqY5ruR8OaGL9D95jJpef9t73DTNxTaHEm/JzREbKujmeNdOmvmFgAjVFJRSdvX9kPdk7qa2NQdgG1NK2de5VX7XwFKD1JS2cCnlYobvcjHXfDXT/Uh2SgKMOgTVrcXuZeLBv1QhdepRSN0hqs5m+C5mE1MdpZSPTdO8nfE7f+r9+96UUsqhvh9zIZkGa8s2ugh+0zSNzLEZkXfja1Yh1VFKkaTD9wmDmes5d0DOcD/NNg2xUwiqOwb/4cxR8FSEHeyvv+2dTDgJzy6mOkopU95Xh9zXq0SWg0W2T96RdxHHjkd0AesC1wyOwKnOrdWI7YmDmVdzjzXNokqmys39pBJUHaUUEVOHQbNWS/VtT6PbFBOJqpsi+JH6TG1FKUWyVJKtmrJxYKrM1Mz236zRcm3owixzq/yOxEIz/efZx9fMwczsYsrr/aQUVHdEVjLw9xxPAIteNirVIjCyqDIXU7eio5ORo/UPc7e+cDA2T0YOeqSgepITAmBl4Ppcv0OPrsClbns/jx6gjhzMnI0wd3Uncpw7mIvPRnj/Bt9PekG1IroScbU/Y/H0bbqtn1faYyj1QH/9bW+MKMKNmOpTSnmvNvOQwXyqYir1e/DAmPw4cIK/1GdYjYXjDV3Y9nvzq2Vw2s2truYLZ2L4eEBN6Lla6ktH9/NxQPAuc/DgFhnVCaoVk4AIq//o792RIy0Z4PLS/aUDfVHjIB8oqm5edm9iakWkfrjBe/FnBmt3ZGHVPcPHGwQmn7NldhNlQvYnmluvb82tMq8ipjf/jnZ6dcc7azzzc8+1Z+Wf+zlecw7p7me0YLZ6QXXPF9MN/scbZLK6Qd7UKpwmEFWnX55dSR+oiCL9rgFdrajeYvztrpjkb5oVIkSrmltlwbtZ9Lwu5onH3M26Fu25l9X3s9T7GT0IQ1DBrLz+treJ3x1OTAEAQJ0gqGB2Xn/bW2eHl1h8dLcGAIAQIKjAo6ia+igZAACAUQl1lh/k4Z7z/xBTAAAQDjJU4OX8vx0VUzUfzAoAAACwvahSCxAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAmnX4f3XCkgxTdHqWAAAAAElFTkSuQmCC" alt="b.well" />
+  <span class="app-name">Patient Matching Service</span>
+</header>
+
+<main>
+<h1>Testing UI</h1>
+<p class="warning">
+  For local/dev use only. These endpoints have no auth of their own and
+  decode/match real demographic data -- only enabled here because
+  ENABLE_TESTING_UI is set.
+</p>
+
+<div class="tabs">
+  <button id="tab-ial2" class="active" onclick="showTab('ial2')">IAL2 Token Decoder</button>
+  <button id="tab-match" onclick="showTab('match')">Patient Matcher</button>
+  <button id="tab-form" onclick="showTab('form')">Patient Matcher (Manual Entry)</button>
+  <button id="tab-bundle" onclick="showTab('bundle')">Bundle Matcher</button>
+</div>
+
+<div id="panel-ial2" class="panel active">
+  <p class="lead">Paste an IAL2 identity token (the CMS Blue Button <code>cms_smart</code> ID token) to verify it and see the FHIR Patient it decodes to.</p>
+  <textarea id="ial2-token" rows="6" placeholder="eyJhbGciOi..."></textarea>
+  <br />
+  <button class="run" onclick="decodeIal2()">Decode</button>
+  <div id="ial2-issuer-banner"></div>
+  <pre id="ial2-result" style="display:none;"></pre>
+</div>
+
+<div id="panel-match" class="panel">
+  <p class="lead">Paste two FHIR Patient resources to see whether they match, which Table 2 rule matched, and -- if not -- why not.</p>
+  <div class="two-col">
+    <div>
+      <strong>Patient A</strong>
+      <textarea id="patient-a" rows="14" placeholder='{"resourceType": "Patient", ...}'></textarea>
+    </div>
+    <div>
+      <strong>Patient B</strong>
+      <textarea id="patient-b" rows="14" placeholder='{"resourceType": "Patient", ...}'></textarea>
+    </div>
+  </div>
+  <button class="run" onclick="matchPair()">Compare</button>
+  <div id="match-result"></div>
+</div>
+
+<div id="panel-form" class="panel">
+  <p class="lead">Type in each patient's demographic fields -- the same fields the matching engine reads from a FHIR Patient -- and we'll build the FHIR Patient resources for you before matching.</p>
+  <p class="warning">Only enter test/synthetic data here. Nothing you type is stored or logged by this service -- see the Testing UI docs for details.</p>
+  <div class="two-col">
+    <div>
+      <strong>Patient A</strong>
+      <div class="field-row"><label for="form-a-first-name">First name</label><input id="form-a-first-name" type="text" autocomplete="off" /></div>
+      <div class="field-row"><label for="form-a-last-name">Last name</label><input id="form-a-last-name" type="text" autocomplete="off" /></div>
+      <div class="field-row"><label for="form-a-prev-last-names">Previous last name(s) (comma-separated)</label><input id="form-a-prev-last-names" type="text" autocomplete="off" /></div>
+      <div class="field-row"><label for="form-a-suffix">Suffix (Jr, Sr, III, ...)</label><input id="form-a-suffix" type="text" autocomplete="off" /></div>
+      <div class="field-row"><label for="form-a-dob">Date of birth</label><input id="form-a-dob" type="date" autocomplete="off" /></div>
+      <div class="field-row">
+        <label>Current address</label>
+        <div class="address-fields">
+          <input id="form-a-address-line1" type="text" placeholder="Street line 1" autocomplete="off" />
+          <input id="form-a-address-line2" type="text" placeholder="Street line 2 (optional)" autocomplete="off" />
+          <input id="form-a-address-city" type="text" placeholder="City" autocomplete="off" />
+          <input id="form-a-address-state" type="text" placeholder="State" autocomplete="off" />
+          <input id="form-a-address-zip" type="text" placeholder="ZIP code" autocomplete="off" />
+          <input id="form-a-address-country" type="text" placeholder="Country" autocomplete="off" />
+        </div>
+      </div>
+      <div class="field-row">
+        <label>Previous address(es)</label>
+        <div id="form-a-prev-addresses" class="prev-address-list"></div>
+        <button type="button" class="btn-secondary" onclick="addPreviousAddress('a')">+ Add previous address</button>
+      </div>
+      <div class="field-row"><label for="form-a-phone">Phone</label><input id="form-a-phone" type="text" autocomplete="off" /></div>
+      <div class="field-row"><label for="form-a-prev-phones">Previous phone number(s) (comma-separated)</label><input id="form-a-prev-phones" type="text" autocomplete="off" /></div>
+      <div class="field-row"><label for="form-a-email">Email</label><input id="form-a-email" type="text" autocomplete="off" /></div>
+      <div class="field-row"><label for="form-a-ssn4">SSN (last 4 digits)</label><input id="form-a-ssn4" type="text" maxlength="4" autocomplete="off" /></div>
+      <div class="field-row"><label for="form-a-mbi">Medicare Beneficiary ID (MBI)</label><input id="form-a-mbi" type="text" autocomplete="off" /></div>
+      <details class="advanced-fields">
+        <summary>Advanced identifiers</summary>
+        <div class="field-row"><label for="form-a-itin4">ITIN (last 4 digits)</label><input id="form-a-itin4" type="text" maxlength="4" autocomplete="off" /></div>
+        <div class="field-pair">
+          <div class="field-row"><label for="form-a-legal-id">Legal ID (driver's license, passport)</label><input id="form-a-legal-id" type="text" autocomplete="off" /></div>
+          <div class="field-row"><label for="form-a-legal-assigner">Issuing authority</label><input id="form-a-legal-assigner" type="text" autocomplete="off" /></div>
+        </div>
+        <div class="field-pair">
+          <div class="field-row"><label for="form-a-namespace-system">Namespace ID system (URI)</label><input id="form-a-namespace-system" type="text" autocomplete="off" /></div>
+          <div class="field-row"><label for="form-a-namespace-value">Namespace ID value</label><input id="form-a-namespace-value" type="text" autocomplete="off" /></div>
+        </div>
+        <div class="field-pair">
+          <div class="field-row"><label for="form-a-member-system">Insurance member ID payer system (URI)</label><input id="form-a-member-system" type="text" autocomplete="off" /></div>
+          <div class="field-row"><label for="form-a-member-value">Insurance member ID</label><input id="form-a-member-value" type="text" autocomplete="off" /></div>
+        </div>
+        <div class="field-pair">
+          <div class="field-row"><label for="form-a-subscriber-system">Insurance subscriber ID payer system (URI)</label><input id="form-a-subscriber-system" type="text" autocomplete="off" /></div>
+          <div class="field-row"><label for="form-a-subscriber-value">Insurance subscriber ID</label><input id="form-a-subscriber-value" type="text" autocomplete="off" /></div>
+        </div>
+      </details>
+    </div>
+    <div>
+      <strong>Patient B</strong>
+      <div class="field-row"><label for="form-b-first-name">First name</label><input id="form-b-first-name" type="text" autocomplete="off" /></div>
+      <div class="field-row"><label for="form-b-last-name">Last name</label><input id="form-b-last-name" type="text" autocomplete="off" /></div>
+      <div class="field-row"><label for="form-b-prev-last-names">Previous last name(s) (comma-separated)</label><input id="form-b-prev-last-names" type="text" autocomplete="off" /></div>
+      <div class="field-row"><label for="form-b-suffix">Suffix (Jr, Sr, III, ...)</label><input id="form-b-suffix" type="text" autocomplete="off" /></div>
+      <div class="field-row"><label for="form-b-dob">Date of birth</label><input id="form-b-dob" type="date" autocomplete="off" /></div>
+      <div class="field-row">
+        <label>Current address</label>
+        <div class="address-fields">
+          <input id="form-b-address-line1" type="text" placeholder="Street line 1" autocomplete="off" />
+          <input id="form-b-address-line2" type="text" placeholder="Street line 2 (optional)" autocomplete="off" />
+          <input id="form-b-address-city" type="text" placeholder="City" autocomplete="off" />
+          <input id="form-b-address-state" type="text" placeholder="State" autocomplete="off" />
+          <input id="form-b-address-zip" type="text" placeholder="ZIP code" autocomplete="off" />
+          <input id="form-b-address-country" type="text" placeholder="Country" autocomplete="off" />
+        </div>
+      </div>
+      <div class="field-row">
+        <label>Previous address(es)</label>
+        <div id="form-b-prev-addresses" class="prev-address-list"></div>
+        <button type="button" class="btn-secondary" onclick="addPreviousAddress('b')">+ Add previous address</button>
+      </div>
+      <div class="field-row"><label for="form-b-phone">Phone</label><input id="form-b-phone" type="text" autocomplete="off" /></div>
+      <div class="field-row"><label for="form-b-prev-phones">Previous phone number(s) (comma-separated)</label><input id="form-b-prev-phones" type="text" autocomplete="off" /></div>
+      <div class="field-row"><label for="form-b-email">Email</label><input id="form-b-email" type="text" autocomplete="off" /></div>
+      <div class="field-row"><label for="form-b-ssn4">SSN (last 4 digits)</label><input id="form-b-ssn4" type="text" maxlength="4" autocomplete="off" /></div>
+      <div class="field-row"><label for="form-b-mbi">Medicare Beneficiary ID (MBI)</label><input id="form-b-mbi" type="text" autocomplete="off" /></div>
+      <details class="advanced-fields">
+        <summary>Advanced identifiers</summary>
+        <div class="field-row"><label for="form-b-itin4">ITIN (last 4 digits)</label><input id="form-b-itin4" type="text" maxlength="4" autocomplete="off" /></div>
+        <div class="field-pair">
+          <div class="field-row"><label for="form-b-legal-id">Legal ID (driver's license, passport)</label><input id="form-b-legal-id" type="text" autocomplete="off" /></div>
+          <div class="field-row"><label for="form-b-legal-assigner">Issuing authority</label><input id="form-b-legal-assigner" type="text" autocomplete="off" /></div>
+        </div>
+        <div class="field-pair">
+          <div class="field-row"><label for="form-b-namespace-system">Namespace ID system (URI)</label><input id="form-b-namespace-system" type="text" autocomplete="off" /></div>
+          <div class="field-row"><label for="form-b-namespace-value">Namespace ID value</label><input id="form-b-namespace-value" type="text" autocomplete="off" /></div>
+        </div>
+        <div class="field-pair">
+          <div class="field-row"><label for="form-b-member-system">Insurance member ID payer system (URI)</label><input id="form-b-member-system" type="text" autocomplete="off" /></div>
+          <div class="field-row"><label for="form-b-member-value">Insurance member ID</label><input id="form-b-member-value" type="text" autocomplete="off" /></div>
+        </div>
+        <div class="field-pair">
+          <div class="field-row"><label for="form-b-subscriber-system">Insurance subscriber ID payer system (URI)</label><input id="form-b-subscriber-system" type="text" autocomplete="off" /></div>
+          <div class="field-row"><label for="form-b-subscriber-value">Insurance subscriber ID</label><input id="form-b-subscriber-value" type="text" autocomplete="off" /></div>
+        </div>
+      </details>
+    </div>
+  </div>
+  <button class="run" onclick="matchPairFromForm()">Compare</button>
+  <div id="form-match-result"></div>
+</div>
+
+<div id="panel-bundle" class="panel">
+  <p class="lead">Upload a FHIR Bundle -- we'll match every Patient it contains against every other Patient in the bundle and show each pair's result.</p>
+  <p class="warning">Only upload test/synthetic data here. Nothing you upload is stored or logged by this service.</p>
+  <div class="field-row">
+    <label for="bundle-file">FHIR Bundle (JSON file)</label>
+    <input id="bundle-file" type="file" accept="application/json,.json" autocomplete="off" />
+  </div>
+  <button class="run" onclick="matchBundle()">Match All Patients</button>
+  <div id="bundle-match-result"></div>
+</div>
+</main>
+
+<footer class="app-footer">
+  &copy; <span id="footer-year"></span> b.well Connected Health &middot;
+  <a href="/guides/">Docs</a> &middot;
+  <a href="/terms">Terms of Use</a> &middot;
+  <a href="https://www.icanbwell.com/legal/privacy-policy/" target="_blank" rel="noreferrer">Privacy Policy</a>
+</footer>
+
+<script>
+document.getElementById('footer-year').textContent = new Date().getFullYear();
+
+function showTab(name) {
+  for (const id of ['ial2', 'match', 'form', 'bundle']) {
+    document.getElementById(`tab-${id}`).classList.toggle('active', id === name);
+    document.getElementById(`panel-${id}`).classList.toggle('active', id === name);
+  }
+}
+
+async function postJson(url, body) {
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  const data = await response.json().catch(() => ({}));
+  return { ok: response.ok, status: response.status, data };
+}
+
+// Every innerHTML assignment below interpolates values that ultimately
+// trace back to a pasted IAL2 token or FHIR Patient (e.g. an unverified
+// `iss` claim, or a JSON.parse error echoing part of the pasted text) --
+// escape before building any HTML string from them.
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, (ch) => (
+    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]
+  ));
+}
+
+async function decodeIal2() {
+  const resultEl = document.getElementById('ial2-result');
+  const bannerEl = document.getElementById('ial2-issuer-banner');
+  resultEl.style.display = 'block';
+  resultEl.textContent = 'Decoding...';
+  bannerEl.innerHTML = '';
+  const token = document.getElementById('ial2-token').value.trim();
+  if (!token) {
+    resultEl.textContent = 'Paste a token first.';
+    return;
+  }
+  const { ok, status, data } = await postJson('/testing-ui-api/decode-ial2-token', { token });
+
+  // `data.accepted` is only present once the extractor got far enough to
+  // check the token's issuer/JWKS (401/422/200 below); a 400/503 (no
+  // extractor configured, or a malformed request) never reaches that far.
+  if (data.accepted === undefined) {
+    resultEl.textContent = `Error ${status}: ${data.detail || 'unknown error'}`;
+    return;
+  }
+
+  const issuerText = data.issuer
+    ? `Issuer: <code>${escapeHtml(data.issuer)}</code>`
+    : 'Issuer: (could not be read from the token)';
+  bannerEl.innerHTML = data.accepted
+    ? `<div class="outcome-banner match">JWKS/issuer ACCEPTED -- ${issuerText}</div>`
+    : `<div class="outcome-banner no_match">JWKS/issuer REJECTED (${escapeHtml(data.error_type)}) -- ${issuerText}</div>`;
+
+  if (!ok) {
+    resultEl.textContent = `Error ${status}: ${data.detail}`;
+    return;
+  }
+  resultEl.textContent = JSON.stringify(data.patient, null, 2);
+}
+
+function parsePatientInput(id) {
+  const raw = document.getElementById(id).value.trim();
+  if (!raw) return { error: 'Paste a FHIR Patient resource first.' };
+  try {
+    return { value: JSON.parse(raw) };
+  } catch (e) {
+    return { error: `Invalid JSON: ${e.message}` };
+  }
+}
+
+// field_values (added to renderRulesTable's `r`) may be an empty object if
+// the installed cms-hte-patient-matching version predates RuleEvaluation.
+// field_values -- degrades gracefully to just the outcome label either way.
+function renderRulesTable(rules) {
+  const rows = rules.map((r) => {
+    const badge = r.matched
+      ? '<span class="badge matched">MATCHED</span>'
+      : '<span class="badge not-matched">no match</span>';
+    let detail;
+    if (r.evaluated) {
+      const fieldValues = r.field_values || {};
+      const fields = Object.entries(r.field_outcomes || {})
+        .map(([field, outcome]) => {
+          const fv = fieldValues[field];
+          if (!fv) return `${escapeHtml(field)}: ${escapeHtml(outcome)}`;
+          const a = fv.query.join(', ') || '(none)';
+          const b = fv.candidate.join(', ') || '(none)';
+          return `${escapeHtml(field)}: ${escapeHtml(outcome)} -- A: ${escapeHtml(a)}; B: ${escapeHtml(b)}`;
+        })
+        .join('<br>');
+      detail = fields || '(no fields evaluated)';
+    } else {
+      detail = `<span class="skip-reason">not evaluated -- ${escapeHtml(r.reason)}</span>`;
+    }
+    return `<tr>
+      <td><span class="rule-pill">${escapeHtml(r.rule_id)}</span></td>
+      <td>${escapeHtml(r.description)}</td>
+      <td>${badge}</td>
+      <td>${detail}</td>
+    </tr>`;
+  }).join('');
+
+  return `<table>
+    <thead><tr><th>Rule</th><th>Description</th><th>Result</th><th>Detail</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table>`;
+}
+
+// Shows literally what FieldExtractor pulled out after normalization, for
+// each patient -- independent of any single rule. An empty list for a
+// field the caller clearly supplied usually means normalization dropped
+// it (unparseable phone, detected placeholder name, etc).
+function renderNormalizedFields(normalizedFields) {
+  if (!normalizedFields) return '';
+  const side = (label, fields) => {
+    const rows = Object.entries(fields || {})
+      .map(([field, values]) => `<tr><td>${escapeHtml(field)}</td><td>${escapeHtml(values.join(', ') || '(none)')}</td></tr>`)
+      .join('');
+    return `<div><strong>${label}</strong><table><tbody>${rows}</tbody></table></div>`;
+  };
+  return `<details class="advanced-fields">
+    <summary>Normalized field values (troubleshooting)</summary>
+    <div class="two-col">
+      ${side('Patient A', normalizedFields.a)}
+      ${side('Patient B', normalizedFields.b)}
+    </div>
+  </details>`;
+}
+
+async function runMatch(patientA, patientB, resultElId) {
+  const resultEl = document.getElementById(resultElId);
+  resultEl.innerHTML = '<pre>Matching...</pre>';
+  const { ok, status, data } = await postJson('/testing-ui-api/match-pair', {
+    patient_a: patientA,
+    patient_b: patientB,
+  });
+  if (!ok) {
+    resultEl.innerHTML = `<pre>Error ${status}: ${escapeHtml(data.detail || 'unknown error')}</pre>`;
+    return;
+  }
+
+  const bannerClass = data.matched ? 'match' : 'no_match';
+  const bannerText = data.matched
+    ? `MATCH via rule ${escapeHtml(data.matched_rule_id)} (${escapeHtml(data.match_type)})`
+    : `NO MATCH (outcome: ${escapeHtml(data.outcome)})`;
+
+  resultEl.innerHTML = `
+    <div class="outcome-banner ${bannerClass}">${bannerText}</div>
+    ${renderNormalizedFields(data.normalized_fields)}
+    ${renderRulesTable(data.rules)}
+  `;
+}
+
+async function matchPair() {
+  const resultEl = document.getElementById('match-result');
+  const a = parsePatientInput('patient-a');
+  if (a.error) {
+    resultEl.innerHTML = `<pre>${escapeHtml(a.error)}</pre>`;
+    return;
+  }
+  const b = parsePatientInput('patient-b');
+  if (b.error) {
+    resultEl.innerHTML = `<pre>${escapeHtml(b.error)}</pre>`;
+    return;
+  }
+  await runMatch(a.value, b.value, 'match-result');
+}
+
+// Mirrors patient_matching's FieldExtractor (field_extractor.py) -- every
+// field read here is a field the matching engine actually looks at, built
+// into the same FHIR shape it expects.
+function splitList(raw) {
+  return raw.split(',').map((s) => s.trim()).filter(Boolean);
+}
+
+// FieldExtractor only reads `line`/`postalCode` for matching (see
+// field_extractor.py), but we collect the rest of FHIR Address's fields
+// too -- for a resource that reads like a real address, and in case a
+// future rule set ever uses city/state/country.
+function buildAddressFromFields({ line1, line2, city, state, zip, country }) {
+  if (!(line1 || line2 || city || state || zip || country)) return null;
+  const address = {};
+  const lines = [line1, line2].filter(Boolean);
+  if (lines.length) address.line = lines;
+  if (city) address.city = city;
+  if (state) address.state = state;
+  if (zip) address.postalCode = zip;
+  if (country) address.country = country;
+  return address;
+}
+
+function previousAddressRowHtml() {
+  return `
+    <div class="prev-address-row">
+      <input type="text" class="addr-line1" placeholder="Street line 1" autocomplete="off" />
+      <input type="text" class="addr-line2" placeholder="Street line 2 (optional)" autocomplete="off" />
+      <input type="text" class="addr-city" placeholder="City" autocomplete="off" />
+      <input type="text" class="addr-state" placeholder="State" autocomplete="off" />
+      <input type="text" class="addr-zip" placeholder="ZIP code" autocomplete="off" />
+      <input type="text" class="addr-country" placeholder="Country" autocomplete="off" />
+      <button type="button" class="remove-row" onclick="this.closest('.prev-address-row').remove()">Remove this address</button>
+    </div>`;
+}
+
+function addPreviousAddress(prefix) {
+  document
+    .getElementById(`form-${prefix}-prev-addresses`)
+    .insertAdjacentHTML('beforeend', previousAddressRowHtml());
+}
+
+function buildPatientFromForm(prefix) {
+  const val = (id) => document.getElementById(`form-${prefix}-${id}`).value.trim();
+  const patient = { resourceType: 'Patient' };
+
+  // Matching evaluates against ALL known values, current and historical
+  // (see FieldExtractor's docstring) -- so previous last names/addresses/
+  // phones become their own name/address/telecom entries alongside the
+  // current one, not a second value on the same entry.
+  const firstName = val('first-name');
+  const lastName = val('last-name');
+  const suffix = val('suffix');
+  const names = [];
+  if (firstName || lastName || suffix) {
+    const name = {};
+    if (firstName) name.given = [firstName];
+    if (lastName) name.family = lastName;
+    if (suffix) name.suffix = [suffix];
+    names.push(name);
+  }
+  for (const prevLastName of splitList(val('prev-last-names'))) {
+    names.push({ use: 'old', family: prevLastName });
+  }
+  if (names.length) patient.name = names;
+
+  const dob = val('dob');
+  if (dob) patient.birthDate = dob;
+
+  const telecom = [];
+  const phone = val('phone');
+  if (phone) telecom.push({ system: 'phone', value: phone });
+  for (const prevPhone of splitList(val('prev-phones'))) {
+    telecom.push({ system: 'phone', value: prevPhone, use: 'old' });
+  }
+  const email = val('email');
+  if (email) telecom.push({ system: 'email', value: email });
+  if (telecom.length) patient.telecom = telecom;
+
+  const addresses = [];
+  const currentAddress = buildAddressFromFields({
+    line1: val('address-line1'),
+    line2: val('address-line2'),
+    city: val('address-city'),
+    state: val('address-state'),
+    zip: val('address-zip'),
+    country: val('address-country'),
+  });
+  if (currentAddress) addresses.push(currentAddress);
+
+  const prevContainer = document.getElementById(`form-${prefix}-prev-addresses`);
+  for (const row of prevContainer.querySelectorAll('.prev-address-row')) {
+    const rowVal = (cls) => row.querySelector(`.${cls}`).value.trim();
+    const prevAddress = buildAddressFromFields({
+      line1: rowVal('addr-line1'),
+      line2: rowVal('addr-line2'),
+      city: rowVal('addr-city'),
+      state: rowVal('addr-state'),
+      zip: rowVal('addr-zip'),
+      country: rowVal('addr-country'),
+    });
+    if (prevAddress) addresses.push({ use: 'old', ...prevAddress });
+  }
+  if (addresses.length) patient.address = addresses;
+
+  const identifiers = [];
+  const ssn4 = val('ssn4');
+  if (ssn4) identifiers.push({ system: 'http://hl7.org/fhir/sid/us-ssn', value: ssn4 });
+  const itin4 = val('itin4');
+  if (itin4) identifiers.push({ system: 'urn:oid:2.16.840.1.113883.4.4', value: itin4 });
+  const mbi = val('mbi');
+  if (mbi) identifiers.push({ system: 'http://hl7.org/fhir/sid/us-mbi', value: mbi });
+
+  const legalId = val('legal-id');
+  if (legalId) {
+    const assigner = val('legal-assigner');
+    identifiers.push({
+      type: { coding: [{ code: 'DL' }] },
+      value: legalId,
+      ...(assigner ? { assigner: { display: assigner } } : {}),
+    });
+  }
+
+  const namespaceValue = val('namespace-value');
+  if (namespaceValue) {
+    const namespaceSystem = val('namespace-system');
+    identifiers.push({
+      type: { coding: [{ code: 'MR' }] },
+      ...(namespaceSystem ? { system: namespaceSystem } : {}),
+      value: namespaceValue,
+    });
+  }
+
+  const memberSystem = val('member-system');
+  const memberValue = val('member-value');
+  if (memberSystem && memberValue) {
+    identifiers.push({
+      type: { coding: [{ code: 'MB' }] },
+      system: memberSystem,
+      value: memberValue,
+    });
+  }
+
+  const subscriberSystem = val('subscriber-system');
+  const subscriberValue = val('subscriber-value');
+  if (subscriberSystem && subscriberValue) {
+    identifiers.push({
+      type: { coding: [{ code: 'SN' }] },
+      system: subscriberSystem,
+      value: subscriberValue,
+    });
+  }
+
+  if (identifiers.length) patient.identifier = identifiers;
+
+  return patient;
+}
+
+async function matchPairFromForm() {
+  const patientA = buildPatientFromForm('a');
+  const patientB = buildPatientFromForm('b');
+  await runMatch(patientA, patientB, 'form-match-result');
+}
+
+async function matchBundle() {
+  const resultEl = document.getElementById('bundle-match-result');
+  const file = document.getElementById('bundle-file').files[0];
+  if (!file) {
+    resultEl.innerHTML = '<pre>Choose a FHIR Bundle JSON file first.</pre>';
+    return;
+  }
+
+  let bundle;
+  try {
+    bundle = JSON.parse(await file.text());
+  } catch (e) {
+    resultEl.innerHTML = `<pre>Invalid JSON: ${escapeHtml(e.message)}</pre>`;
+    return;
+  }
+
+  resultEl.innerHTML = '<pre>Matching...</pre>';
+  const { ok, status, data } = await postJson('/testing-ui-api/match-bundle', { bundle });
+  if (!ok) {
+    resultEl.innerHTML = `<pre>Error ${status}: ${escapeHtml(data.detail || 'unknown error')}</pre>`;
+    return;
+  }
+
+  const labelFor = (index) => escapeHtml(data.patients[index]?.label ?? `Patient ${index}`);
+
+  const patientsList = data.patients
+    .map((p) => `<li><span class="rule-pill">#${p.index}</span> ${escapeHtml(p.label)}</li>`)
+    .join('');
+
+  const pairRows = data.pairs.map((pair) => {
+    const badge = pair.matched
+      ? '<span class="badge matched">MATCH</span>'
+      : '<span class="badge not-matched">no match</span>';
+    const ruleInfo = pair.matched
+      ? `rule ${escapeHtml(pair.matched_rule_id)} (${escapeHtml(pair.match_type)})`
+      : `outcome: ${escapeHtml(pair.outcome)}`;
+    return `<tr>
+      <td>#${pair.a_index} ${labelFor(pair.a_index)}</td>
+      <td>#${pair.b_index} ${labelFor(pair.b_index)}</td>
+      <td>${badge}</td>
+      <td>${ruleInfo}</td>
+      <td><details><summary>Rule detail</summary>${renderRulesTable(pair.rules)}</details></td>
+    </tr>`;
+  }).join('');
+
+  resultEl.innerHTML = `
+    <p><strong>${data.patients.length}</strong> Patient(s) found in bundle:</p>
+    <ul>${patientsList}</ul>
+    <table>
+      <thead><tr><th>Patient A</th><th>Patient B</th><th>Result</th><th>Rule</th><th>Detail</th></tr></thead>
+      <tbody>${pairRows}</tbody>
+    </table>
+  `;
+}
+</script>
+</body>
+</html>

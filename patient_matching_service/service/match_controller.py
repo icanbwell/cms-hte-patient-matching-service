@@ -16,8 +16,10 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+from cmshteial2reader import IAL2Extractor, extract_cms_smart_id_token
 from fastapi import Request
 from patient_matching.api.service import MatchResponse, PatientMatcherService
+from pydantic import ValidationError
 
 logger = logging.getLogger(__name__)
 
@@ -26,22 +28,111 @@ class InvalidMatchRequest(ValueError):
     """The request body isn't a valid FHIR $match Parameters payload."""
 
 
+class Ial2PatientValidationError(ValueError):
+    """IAL2Extractor.extract() verified the token but its claims don't build
+    a schema-valid FHIR Patient.
+
+    Deliberately narrower than pydantic's own ValidationError: the app
+    registers a global exception handler that assumes any ValidationError
+    it sees came from an IAL2 token, which would mislabel an unrelated
+    validation failure elsewhere in the app (e.g. in the FHIR client) as
+    an IAL2 problem. Wrapping here keeps that handler scoped to what it
+    actually means. `original.errors()` still has the field-level detail
+    for logging.
+    """
+
+    def __init__(self, original: ValidationError) -> None:
+        super().__init__(str(original))
+        self.original = original
+
+
 class MatchController:
-    """Wraps a PatientMatcherService instance with FHIR (de)serialization."""
+    """Wraps a PatientMatcherService instance with FHIR (de)serialization.
 
-    def __init__(self, *, service: PatientMatcherService) -> None:
+    ial2_extractor is optional: if the service isn't configured for IAL2
+    (see api._build_ial2_extractor), a request whose auth token carries a
+    cms_smart identity is rejected rather than silently falling back to
+    requiring a body Patient.
+    """
+
+    def __init__(
+        self,
+        *,
+        service: PatientMatcherService,
+        ial2_extractor: IAL2Extractor | None = None,
+    ) -> None:
         self._service = service
+        self._ial2_extractor = ial2_extractor
 
-    async def match(self, parameter_json: dict[str, Any]) -> dict[str, Any]:
+    async def match(
+        self,
+        parameter_json: dict[str, Any] | None,
+        *,
+        jwt_claims: dict[str, Any],
+    ) -> dict[str, Any]:
         """Run a FHIR $match request and return a FHIR searchset Bundle.
+
+        If the auth token's claims carry a CMS Blue Button
+        ``extensions.cms_smart.id_token`` (an IAL2-verified identity from a
+        Credential Service Provider -- see
+        https://bluebutton.cms.gov/cms-aligned-networks-documentation/),
+        the query Patient is extracted from that nested token instead of
+        requiring one in the request body.
 
         Raises:
             InvalidMatchRequest: if parameter_json isn't a valid $match
-                Parameters payload containing a Patient resource.
+                Parameters payload containing a Patient resource (and no
+                cms_smart identity token is present), or if a cms_smart
+                identity token is present but IAL2 support isn't
+                configured on this service.
         """
-        patient = self._extract_patient(parameter_json)
+        cms_smart_present = self._has_cms_smart_extension(jwt_claims)
+        ial2_token = extract_cms_smart_id_token(jwt_claims)
+        if cms_smart_present and ial2_token is None:
+            # extract_cms_smart_id_token collapses "no cms_smart identity"
+            # and "cms_smart identity present but malformed" into the same
+            # None -- by design, since it doesn't know which one matters to
+            # a given caller (see its docstring). Here it matters: falling
+            # through to the body-Patient path below would silently let a
+            # malformed/emptied cms_smart claim downgrade an IAL2-intended
+            # request into an unverified caller-supplied-demographics one.
+            raise InvalidMatchRequest(
+                "Auth token's cms_smart identity is malformed (missing or "
+                "invalid extensions.cms_smart.id_token)"
+            )
+        if ial2_token is not None:
+            if self._ial2_extractor is None:
+                raise InvalidMatchRequest(
+                    "Auth token carries a cms_smart identity, but this "
+                    "service is not configured for IAL2 (set "
+                    "IAL2_ALLOWED_JWKS_URLS and IAL2_AUDIENCE)"
+                )
+            try:
+                patient = await self._ial2_extractor.extract(ial2_token)
+            except ValidationError as exc:
+                raise Ial2PatientValidationError(exc) from exc
+        else:
+            if parameter_json is None:
+                raise InvalidMatchRequest(
+                    "Request body is required unless the auth token carries "
+                    "a cms_smart identity (extensions.cms_smart.id_token)"
+                )
+            patient = self._extract_patient(parameter_json)
+
         result = await self._service.match_patient(patient)
         return self._build_bundle(result)
+
+    @staticmethod
+    def _has_cms_smart_extension(jwt_claims: dict[str, Any]) -> bool:
+        """Whether the auth token's claims carry a cms_smart block at all,
+        regardless of whether its id_token is well-formed -- see the
+        malformed-shape check in match() above."""
+        extensions = (
+            jwt_claims.get("extensions") if isinstance(jwt_claims, dict) else None
+        )
+        return isinstance(extensions, dict) and isinstance(
+            extensions.get("cms_smart"), dict
+        )
 
     @staticmethod
     def _extract_patient(parameter_json: dict[str, Any]) -> dict[str, Any]:

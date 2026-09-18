@@ -15,11 +15,18 @@ devdocker: ## Builds the docker for dev
 init: uv.lock devdocker up setup-pre-commit  ## Initializes the local developer environment
 
 .PHONY: up
-up:
+up: ## Builds and starts the service in the background
 	docker compose up --build -d --remove-orphans
+	@echo ""
+	@echo "patient_matching_service is up: http://localhost:5050"
+	@if grep -qE '^ENABLE_TESTING_UI=(true|1|yes)$$' .env 2>/dev/null; then \
+		echo "Testing UI:               http://localhost:5050/testing-ui"; \
+	else \
+		echo "Testing UI is disabled -- set ENABLE_TESTING_UI=true in .env and re-run 'make up' to expose it at http://localhost:5050/testing-ui"; \
+	fi
 
 .PHONY: down
-down:
+down: ## Stops the service
 	docker compose down
 
 .PHONY:clean-pre-commit

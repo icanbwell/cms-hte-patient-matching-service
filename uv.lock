@@ -433,27 +433,39 @@ wheels = [
 ]
 
 [[package]]
+name = "cms-hte-ial2-reader"
+version = "0.0.4"
+source = { registry = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/simple" }
+dependencies = [
+    { name = "cryptography" },
+    { name = "fhirschemapy" },
+    { name = "pyjwt" },
+]
+sdist = { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/f8/99/00857e74fc24114f98a957f2924d7cabf129743fdfaa7bfc817185a1daa6/cms_hte_ial2_reader-0.0.4.tar.gz", hash = "sha256:c8283650dc4d684b687d5f5f4d5610fae862845326330fa239a1cf995c4f8802", size = 32950, upload-time = "2026-09-18T04:04:57.45Z" }
+wheels = [
+    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/44/60/c0be942502223faaa8272f222ed2b2d54b0531dbd151ec055159e9ba9cd4/cms_hte_ial2_reader-0.0.4-py3-none-any.whl", hash = "sha256:dace0f1b468afff5b9ccb023820d64c83ab3d14b614735855929967f178dcf36", size = 25620, upload-time = "2026-09-18T04:04:56.221Z" },
+]
+
+[[package]]
 name = "cms-hte-patient-matching"
-version = "0.0.5"
+version = "0.0.11"
 source = { registry = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/simple" }
 dependencies = [
     { name = "apscheduler" },
-    { name = "cryptography" },
     { name = "duckdb" },
     { name = "fhirschemapy" },
     { name = "httpx" },
     { name = "nicknames" },
     { name = "phonenumbers" },
     { name = "phonetics" },
-    { name = "pyjwt" },
     { name = "rapidfuzz" },
     { name = "text-unidecode" },
     { name = "usaddress" },
     { name = "usaddress-scourgify" },
 ]
-sdist = { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/47/71/118ef93d4d62b9d02e1eb2cc3b02aece160c14ae19f470aa58a48425449e/cms_hte_patient_matching-0.0.5.tar.gz", hash = "sha256:cbe40eb57f5b954093318e472f0d3b9fbe445f3962b4f5ff29a6b51bb431e0e0", size = 86451, upload-time = "2026-09-06T23:47:26.68Z" }
+sdist = { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/4f/2c/b9ee431a6932285c6551cfebfb80ae087684cfc2daa17a20f92cfe4837da/cms_hte_patient_matching-0.0.11.tar.gz", hash = "sha256:1ccae7db2b1612807fe030fd6159f0234bf11d4ed7b6243e7e44ccb762400dab", size = 103263, upload-time = "2026-09-18T04:05:29.307Z" }
 wheels = [
-    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/2d/cd/1a78e4d683ca44ae53f64767b4a97b004ea3dbc1246fa84ef7fdc37f572f/cms_hte_patient_matching-0.0.5-py3-none-any.whl", hash = "sha256:ecb80b39c05a5b2486cb7a6d349c942505821d36c02bfd031c812e8f5a8d3d5b", size = 103246, upload-time = "2026-09-06T23:47:25.39Z" },
+    { url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/packages/packages/35/3b/6e0ae4df5b8cb13b189d65dc2de3bb1199ec0f659902f9648a9e15ad2059/cms_hte_patient_matching-0.0.11-py3-none-any.whl", hash = "sha256:1614e584d745aa6e04e9b25553aeaf5b1a2009fa133fca07ec671a5ac97b505b", size = 118024, upload-time = "2026-09-18T04:05:27.805Z" },
 ]
 
 [[package]]
@@ -874,6 +886,7 @@ name = "patient-matching-service"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
+    { name = "cms-hte-ial2-reader" },
     { name = "cms-hte-patient-matching" },
     { name = "fastapi" },
     { name = "httpx" },
@@ -900,7 +913,8 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "cms-hte-patient-matching", specifier = ">=0.0.5" },
+    { name = "cms-hte-ial2-reader", specifier = ">=0.0.4" },
+    { name = "cms-hte-patient-matching", specifier = ">=0.0.11" },
     { name = "fastapi", specifier = ">=0.110.0" },
     { name = "httpx", specifier = ">=0.27.2" },
     { name = "prometheus-fastapi-instrumentator", specifier = ">=7.0.0" },

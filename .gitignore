@@ -20,3 +20,6 @@ __pycache__/
 # Test data
 /data/
 /tests_integration/index/
+
+# macOS
+.DS_Store

@@ -17,6 +17,11 @@ from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from typing import Any
 
+from cmshteial2reader import (
+    IAL2Extractor,
+    MultiIssuerTokenVerifier,
+    TokenVerificationError,
+)
 from fastapi import APIRouter, Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -33,10 +38,13 @@ from patient_matching_service.filters.endpoint_filter import EndpointFilter
 from patient_matching_service.jwt_validator import JWTValidator
 from patient_matching_service.observability.logging import configure_logging
 from patient_matching_service.service.match_controller import (
+    Ial2PatientValidationError,
     InvalidMatchRequest,
     MatchController,
     get_match_controller,
 )
+from patient_matching_service.testing_ui.routes import is_testing_ui_enabled
+from patient_matching_service.testing_ui.routes import router as testing_ui_router
 
 configure_logging()
 logger = logging.getLogger(__name__)
@@ -106,13 +114,43 @@ def _build_jwt_validator() -> JWTValidator | None:
     )
 
 
+def _build_ial2_extractor() -> IAL2Extractor | None:
+    """Build the IAL2 extractor from IAL2_ALLOWED_JWKS_URLS/IAL2_AUDIENCE,
+    or None if unset (IAL2 support disabled -- a cms_smart identity token
+    on a request is then rejected, not silently ignored; see
+    MatchController.match)."""
+    jwks_urls = os.getenv("IAL2_ALLOWED_JWKS_URLS")
+    audience = os.getenv("IAL2_AUDIENCE")
+    if not jwks_urls or not audience:
+        logger.warning(
+            "IAL2_ALLOWED_JWKS_URLS/IAL2_AUDIENCE are not set -- IAL2 "
+            "identity token support (the CMS Blue Button cms_smart "
+            "extension) is disabled."
+        )
+        return None
+
+    verifier = MultiIssuerTokenVerifier.from_env(audience=audience)
+    return IAL2Extractor(verifier=verifier)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     logger.info("Starting up patient_matching_service...")
 
+    if is_testing_ui_enabled():
+        logger.warning(
+            "ENABLE_TESTING_UI is set -- exposing the unauthenticated IAL2-decode "
+            "and patient-matching testing UI at /testing-ui. Do not set this in a "
+            "production or externally-reachable deployment."
+        )
+
     cache = await _build_cache()
     service = PatientMatcherService(cache=cache, config=ServiceConfig())
-    app.state.match_controller = MatchController(service=service)
+    ial2_extractor = _build_ial2_extractor()
+    app.state.match_controller = MatchController(
+        service=service, ial2_extractor=ial2_extractor
+    )
+    app.state.ial2_extractor = ial2_extractor
 
     app.state.jwt_validator = _build_jwt_validator()
 
@@ -144,6 +182,50 @@ async def _invalid_match_request_handler(
     return JSONResponse({"detail": str(exc)}, status_code=400)
 
 
+@app.exception_handler(TokenVerificationError)
+async def _ial2_token_verification_error_handler(
+    request: Request, exc: TokenVerificationError
+) -> JSONResponse:
+    # Detail is intentionally generic, not str(exc): TokenVerificationError
+    # messages can include the token's own (unverified-at-that-point) `iss`
+    # claim -- e.g. "resolves to a non-public address (10.x.x.x); rejected"
+    # -- which would leak internal network details to whoever sent the
+    # token. Same reasoning as jwt_validator.py's auth-failure messages.
+    logger.warning("IAL2 identity token verification failed: %s", exc)
+    return JSONResponse(
+        {"detail": "IAL2 identity token verification failed"},
+        status_code=401,
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+
+
+@app.exception_handler(Ial2PatientValidationError)
+async def _ial2_patient_validation_error_handler(
+    request: Request, exc: Ial2PatientValidationError
+) -> JSONResponse:
+    # Raised by MatchController.match() when a signature-valid CSP token's
+    # demographic claims don't build a schema-valid FHIR Patient (e.g. an
+    # unparseable birth_date). Deliberately its own exception type, not
+    # pydantic's ValidationError directly: that's raised by any pydantic
+    # model in the app, so handling it globally here would mislabel an
+    # unrelated validation failure (e.g. in the FHIR client) as an IAL2
+    # one. Detail is generic, not str(exc): pydantic validation messages
+    # include the offending input value, which here would be a fragment of
+    # the patient's demographic data. Same reasoning applies to the log
+    # line below -- log only field paths/error codes (exc.original.errors()
+    # minus 'input'/'msg'/'url'), never str(exc) or the raw errors() dicts,
+    # which carry that same input_value.
+    failed_fields = [".".join(str(p) for p in e["loc"]) for e in exc.original.errors()]
+    logger.warning(
+        "IAL2 token produced an invalid FHIR Patient; failed fields: %s",
+        failed_fields,
+    )
+    return JSONResponse(
+        {"detail": "IAL2 identity token contains invalid demographic data"},
+        status_code=422,
+    )
+
+
 @app.get("/health")
 async def health() -> dict[str, str]:
     return {"status": "ok"}
@@ -156,14 +238,28 @@ protected_router = APIRouter()
 async def match(
     request: Request,
     controller: MatchController = Depends(get_match_controller),
+    jwt_claims: dict[str, Any] = Depends(verify_jwt),
 ) -> JSONResponse:
-    try:
-        data: dict[str, Any] = await request.json()
-    except json.JSONDecodeError as exc:
-        raise InvalidMatchRequest(f"Request body is not valid JSON: {exc}") from exc
-    bundle = await controller.match(data)
+    # Body is optional: a request whose auth token carries a cms_smart
+    # identity (see MatchController.match) doesn't need one. FastAPI
+    # caches this Depends(verify_jwt) call against the identical one on
+    # protected_router below, so the token isn't verified twice.
+    raw_body = await request.body()
+    data: dict[str, Any] | None = None
+    if raw_body:
+        try:
+            data = json.loads(raw_body)
+        except json.JSONDecodeError as exc:
+            raise InvalidMatchRequest(f"Request body is not valid JSON: {exc}") from exc
+    bundle = await controller.match(data, jwt_claims=jwt_claims)
     return JSONResponse(bundle, status_code=200, media_type="application/fhir+json")
 
+
+# Registered unconditionally -- each route in testing_ui_router gates
+# itself per-request on ENABLE_TESTING_UI (404 if unset), rather than the
+# router only existing when the env var happened to be set at import time.
+# See testing_ui/routes.py's _require_testing_ui_enabled.
+app.include_router(testing_ui_router)
 
 app.include_router(protected_router, dependencies=[Depends(verify_jwt)])
 
