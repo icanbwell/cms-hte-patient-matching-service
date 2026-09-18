@@ -7,6 +7,7 @@ from patient_matching.api.service import MatchResponse
 from pydantic import ValidationError
 
 from patient_matching_service.service.match_controller import (
+    Ial2PatientValidationError,
     InvalidMatchRequest,
     MatchController,
 )
@@ -174,15 +175,53 @@ class TestMatchWithIal2:
 
         service.match_patient.assert_not_called()
 
-    async def test_cms_smart_claim_propagates_validation_error(self) -> None:
+    async def test_cms_smart_claim_wraps_validation_error(self) -> None:
+        """MatchController wraps the extractor's raw pydantic ValidationError
+        in Ial2PatientValidationError, not letting it propagate directly --
+        see Ial2PatientValidationError's docstring for why: api.py's global
+        exception handler needs a type it can trust always means "an IAL2
+        token produced a bad Patient", not any pydantic model in the app."""
         service = AsyncMock()
         ial2_extractor = AsyncMock()
-        ial2_extractor.extract.side_effect = _make_validation_error()
+        original = _make_validation_error()
+        ial2_extractor.extract.side_effect = original
         controller = MatchController(service=service, ial2_extractor=ial2_extractor)
 
-        with pytest.raises(ValidationError):
+        with pytest.raises(Ial2PatientValidationError) as exc_info:
             await controller.match(None, jwt_claims=_cms_smart_claims("the-nested-jwt"))
 
+        assert exc_info.value.original is original
+        service.match_patient.assert_not_called()
+
+    @pytest.mark.parametrize(
+        "cms_smart_extension",
+        [
+            {"version": "1", "id_token": ""},
+            {"version": "1", "id_token": "   "},
+            {"version": "1", "id_token": 12345},
+            {"version": "1"},
+        ],
+    )
+    async def test_malformed_cms_smart_extension_rejected_not_fallen_back_to_body(
+        self, cms_smart_extension: dict[str, Any]
+    ) -> None:
+        """A cms_smart block that's present but yields no usable id_token
+        must be rejected, not silently treated the same as "no cms_smart
+        identity at all" (which would fall through to the body-Patient
+        path below and let a malformed/emptied claim downgrade an
+        IAL2-intended request into an unverified caller-supplied one)."""
+        service = AsyncMock()
+        ial2_extractor = AsyncMock()
+        controller = MatchController(service=service, ial2_extractor=ial2_extractor)
+
+        body_patient = {"resourceType": "Patient", "id": "from-body"}
+        with pytest.raises(InvalidMatchRequest):
+            await controller.match(
+                _parameters(body_patient),
+                jwt_claims={"extensions": {"cms_smart": cms_smart_extension}},
+            )
+
+        ial2_extractor.extract.assert_not_called()
         service.match_patient.assert_not_called()
 
     async def test_no_cms_smart_claim_uses_body_path_even_when_ial2_configured(

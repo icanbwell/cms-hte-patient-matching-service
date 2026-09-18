@@ -32,13 +32,13 @@ from patient_matching.cache.duckdb_cache import DuckDBCache
 from patient_matching.fhir_client.auth import ClientCredentialsAuth
 from patient_matching.fhir_client.client import FhirClient, FhirClientConfig
 from prometheus_fastapi_instrumentator import Instrumentator
-from pydantic import ValidationError
 
 from patient_matching_service.deps import verify_jwt
 from patient_matching_service.filters.endpoint_filter import EndpointFilter
 from patient_matching_service.jwt_validator import JWTValidator
 from patient_matching_service.observability.logging import configure_logging
 from patient_matching_service.service.match_controller import (
+    Ial2PatientValidationError,
     InvalidMatchRequest,
     MatchController,
     get_match_controller,
@@ -199,19 +199,23 @@ async def _ial2_token_verification_error_handler(
     )
 
 
-@app.exception_handler(ValidationError)
+@app.exception_handler(Ial2PatientValidationError)
 async def _ial2_patient_validation_error_handler(
-    request: Request, exc: ValidationError
+    request: Request, exc: Ial2PatientValidationError
 ) -> JSONResponse:
-    # Raised by IAL2Extractor.extract() when a signature-valid CSP token's
+    # Raised by MatchController.match() when a signature-valid CSP token's
     # demographic claims don't build a schema-valid FHIR Patient (e.g. an
-    # unparseable birth_date). Detail is generic, not str(exc): pydantic
-    # validation messages include the offending input value, which here
-    # would be a fragment of the patient's demographic data. Same reasoning
-    # applies to the log line below -- log only field paths/error codes
-    # (exc.errors() minus 'input'/'msg'/'url'), never str(exc) or the raw
-    # errors() dicts, which carry that same input_value.
-    failed_fields = [".".join(str(p) for p in e["loc"]) for e in exc.errors()]
+    # unparseable birth_date). Deliberately its own exception type, not
+    # pydantic's ValidationError directly: that's raised by any pydantic
+    # model in the app, so handling it globally here would mislabel an
+    # unrelated validation failure (e.g. in the FHIR client) as an IAL2
+    # one. Detail is generic, not str(exc): pydantic validation messages
+    # include the offending input value, which here would be a fragment of
+    # the patient's demographic data. Same reasoning applies to the log
+    # line below -- log only field paths/error codes (exc.original.errors()
+    # minus 'input'/'msg'/'url'), never str(exc) or the raw errors() dicts,
+    # which carry that same input_value.
+    failed_fields = [".".join(str(p) for p in e["loc"]) for e in exc.original.errors()]
     logger.warning(
         "IAL2 token produced an invalid FHIR Patient; failed fields: %s",
         failed_fields,

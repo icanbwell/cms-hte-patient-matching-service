@@ -228,6 +228,7 @@ def _peek_issuer(token: str) -> str | None:
 @router.post(
     "/testing-ui-api/decode-ial2-token",
     dependencies=[Depends(_require_testing_ui_enabled)],
+    include_in_schema=False,
 )
 async def decode_ial2_token(request: Request) -> JSONResponse:
     """Verify a pasted IAL2 token and return the FHIR Patient it decodes to.
@@ -281,6 +282,7 @@ async def decode_ial2_token(request: Request) -> JSONResponse:
 @router.post(
     "/testing-ui-api/match-pair",
     dependencies=[Depends(_require_testing_ui_enabled)],
+    include_in_schema=False,
 )
 async def match_pair(request: Request) -> dict[str, Any]:
     """Run the real matching engine on two pasted FHIR Patients.
@@ -356,6 +358,7 @@ def _patient_label(patient: dict[str, Any], index: int) -> str:
 @router.post(
     "/testing-ui-api/match-bundle",
     dependencies=[Depends(_require_testing_ui_enabled)],
+    include_in_schema=False,
 )
 async def match_bundle(request: Request) -> dict[str, Any]:
     """Pairwise-match every Patient in a pasted FHIR Bundle against every other.
