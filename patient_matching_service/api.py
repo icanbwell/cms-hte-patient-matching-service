@@ -207,8 +207,15 @@ async def _ial2_patient_validation_error_handler(
     # demographic claims don't build a schema-valid FHIR Patient (e.g. an
     # unparseable birth_date). Detail is generic, not str(exc): pydantic
     # validation messages include the offending input value, which here
-    # would be a fragment of the patient's demographic data.
-    logger.warning("IAL2 token produced an invalid FHIR Patient: %s", exc)
+    # would be a fragment of the patient's demographic data. Same reasoning
+    # applies to the log line below -- log only field paths/error codes
+    # (exc.errors() minus 'input'/'msg'/'url'), never str(exc) or the raw
+    # errors() dicts, which carry that same input_value.
+    failed_fields = [".".join(str(p) for p in e["loc"]) for e in exc.errors()]
+    logger.warning(
+        "IAL2 token produced an invalid FHIR Patient; failed fields: %s",
+        failed_fields,
+    )
     return JSONResponse(
         {"detail": "IAL2 identity token contains invalid demographic data"},
         status_code=422,

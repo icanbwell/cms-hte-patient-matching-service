@@ -9,6 +9,7 @@ a deployment that isn't already trusted/internal.
 
 from __future__ import annotations
 
+import dataclasses
 import logging
 import os
 from pathlib import Path
@@ -85,6 +86,63 @@ _ALL_RULES: list[tuple[str, str, set[str]]] = [
 _RULE_DESCRIPTIONS: dict[str, str] = {
     rule_id: description for rule_id, description, _ in _ALL_RULES
 }
+
+
+def _normalized_field_summary(fields: PatientFields) -> dict[str, list[str]]:
+    """Every value FieldExtractor pulled out, normalized and sorted.
+
+    For troubleshooting: an empty list here for a field the caller clearly
+    supplied (e.g. "phones": [] despite a telecom entry in the pasted
+    Patient) means NormalizationManager dropped it -- an invalid-looking
+    number, a detected placeholder value -- *before* matching ever saw it.
+    field_outcomes/field_values (below) only show what happened once a
+    rule was evaluated; this shows what was available to evaluate at all.
+    """
+    return {f.name: sorted(getattr(fields, f.name)) for f in dataclasses.fields(fields)}
+
+
+def _build_rules_report(
+    result: Any, fields_a: PatientFields, fields_b: PatientFields
+) -> list[dict[str, Any]]:
+    """Shared by match_pair and match_bundle: one row per Table 2 rule,
+    evaluated or not, for the troubleshooting table.
+
+    `field_values` (the normalized values actually compared for a field)
+    comes from cms-hte-patient-matching's RuleEvaluation.field_values --
+    guarded with getattr since older installed versions of that package
+    predate the attribute.
+    """
+    evaluated_rule_ids = {ev.rule_id for ev in result.rule_evaluations}
+    rules_report: list[dict[str, Any]] = [
+        {
+            "rule_id": ev.rule_id,
+            "description": _RULE_DESCRIPTIONS.get(ev.rule_id, ""),
+            "evaluated": True,
+            "matched": ev.matched,
+            "match_type": ev.match_type,
+            "fuzzy_fields": ev.fuzzy_fields,
+            "negated_by_suffix": ev.negated_by_suffix,
+            "field_outcomes": ev.field_outcomes,
+            "field_values": getattr(ev, "field_values", {}),
+        }
+        for ev in result.rule_evaluations
+    ]
+
+    for rule_id, description, required_fields in _ALL_RULES:
+        if rule_id in evaluated_rule_ids:
+            continue
+        rules_report.append(
+            {
+                "rule_id": rule_id,
+                "description": description,
+                "evaluated": False,
+                "matched": False,
+                "reason": _not_evaluated_reason(required_fields, fields_a, fields_b),
+            }
+        )
+
+    rules_report.sort(key=lambda r: r["rule_id"])
+    return rules_report
 
 
 def _get_ial2_extractor(request: Request) -> IAL2Extractor:
@@ -212,42 +270,119 @@ async def match_pair(request: Request) -> dict[str, Any]:
     fields_a = extractor.extract(normalized_a)
     fields_b = extractor.extract(normalized_b)
 
-    evaluated_rule_ids = {ev.rule_id for ev in result.rule_evaluations}
-    rules_report: list[dict[str, Any]] = [
-        {
-            "rule_id": ev.rule_id,
-            "description": _RULE_DESCRIPTIONS.get(ev.rule_id, ""),
-            "evaluated": True,
-            "matched": ev.matched,
-            "match_type": ev.match_type,
-            "fuzzy_fields": ev.fuzzy_fields,
-            "negated_by_suffix": ev.negated_by_suffix,
-            "field_outcomes": ev.field_outcomes,
-        }
-        for ev in result.rule_evaluations
-    ]
-
-    for rule_id, description, required_fields in _ALL_RULES:
-        if rule_id in evaluated_rule_ids:
-            continue
-        rules_report.append(
-            {
-                "rule_id": rule_id,
-                "description": description,
-                "evaluated": False,
-                "matched": False,
-                "reason": _not_evaluated_reason(required_fields, fields_a, fields_b),
-            }
-        )
-
-    rules_report.sort(key=lambda r: r["rule_id"])
-
     return {
         "outcome": result.outcome.value,
         "matched": result.outcome == MatchOutcome.MATCH,
         "matched_rule_id": result.matched_rule_id,
         "match_type": result.match_type,
-        "rules": rules_report,
+        "normalized_fields": {
+            "a": _normalized_field_summary(fields_a),
+            "b": _normalized_field_summary(fields_b),
+        },
+        "rules": _build_rules_report(result, fields_a, fields_b),
+    }
+
+
+# Pairwise-matching a bundle is O(n^2) MatchingEngine.match() calls (see
+# match_bundle below) -- capped so a large pasted bundle can't turn this
+# debug endpoint into an accidental load test.
+_MAX_BUNDLE_PATIENTS = 50
+
+
+def _patient_label(patient: dict[str, Any], index: int) -> str:
+    """Human-readable label for a bundle Patient, for the results table.
+
+    Best-effort, display-only -- falls back to the resource id, then a
+    positional placeholder, so a patient with no name still gets a row.
+    """
+    for name in patient.get("name") or []:
+        given = " ".join(name.get("given") or [])
+        family = name.get("family") or ""
+        full = f"{given} {family}".strip()
+        if full:
+            return full
+    return patient.get("id") or f"Patient {index}"
+
+
+@router.post(
+    "/testing-ui-api/match-bundle",
+    dependencies=[Depends(_require_testing_ui_enabled)],
+)
+async def match_bundle(request: Request) -> dict[str, Any]:
+    """Pairwise-match every Patient in a pasted FHIR Bundle against every other.
+
+    Runs the same NormalizationManager + MatchingEngine as /match-pair once
+    per unordered pair (i, j with i < j), each against a single-candidate
+    InMemoryBackend -- so each pair's outcome/rule id reads exactly like a
+    two-patient /match-pair call would, rather than introducing a second,
+    N-candidate matching semantics (escalate/ambiguous) into this endpoint.
+    """
+    body = await request.json()
+    if not isinstance(body, dict):
+        raise HTTPException(
+            status_code=400, detail="Request body must be a JSON object"
+        )
+    bundle = body.get("bundle")
+    if not isinstance(bundle, dict) or bundle.get("resourceType") != "Bundle":
+        raise HTTPException(
+            status_code=400, detail="Request body must be {'bundle': <FHIR Bundle>}"
+        )
+
+    patients: list[dict[str, Any]] = []
+    for entry in bundle.get("entry") or []:
+        resource = entry.get("resource") if isinstance(entry, dict) else None
+        if isinstance(resource, dict) and resource.get("resourceType") == "Patient":
+            patients.append(resource)
+
+    if len(patients) < 2:
+        raise HTTPException(
+            status_code=400,
+            detail="Bundle must contain at least 2 Patient resources",
+        )
+    if len(patients) > _MAX_BUNDLE_PATIENTS:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Bundle contains {len(patients)} Patients; this debug tool "
+                f"supports at most {_MAX_BUNDLE_PATIENTS} (pairwise matching "
+                "is O(n^2))"
+            ),
+        )
+
+    normalizer = NormalizationManager()
+    normalized = [normalizer.normalize(p) for p in patients]
+
+    extractor = FieldExtractor()
+    fields = [extractor.extract(p) for p in normalized]
+
+    pairs: list[dict[str, Any]] = []
+    for i in range(len(normalized)):
+        for j in range(i + 1, len(normalized)):
+            backend = InMemoryBackend([normalized[j]])
+            engine = MatchingEngine(backend=backend)
+            result = await engine.match(normalized[i])
+            pairs.append(
+                {
+                    "a_index": i,
+                    "b_index": j,
+                    "outcome": result.outcome.value,
+                    "matched": result.outcome == MatchOutcome.MATCH,
+                    "matched_rule_id": result.matched_rule_id,
+                    "match_type": result.match_type,
+                    "rules": _build_rules_report(result, fields[i], fields[j]),
+                }
+            )
+
+    return {
+        "patients": [
+            {
+                "index": i,
+                "label": _patient_label(p, i),
+                "normalized_fields": _normalized_field_summary(fields[i]),
+            }
+            for i, p in enumerate(patients)
+        ],
+        "pairs": pairs,
     }
 
 

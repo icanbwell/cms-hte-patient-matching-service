@@ -268,3 +268,94 @@ def test_match_pair_missing_fields_reports_which_fields_are_missing(
     rule_08 = next(r for r in body["rules"] if r["rule_id"] == "08")
     assert rule_08["evaluated"] is False
     assert "dob" in rule_08["reason"]
+
+
+def test_match_pair_reports_normalized_field_values(
+    enabled: None, client: TestClient
+) -> None:
+    """normalized_fields lets a caller see what NormalizationManager/
+    FieldExtractor actually saw, independent of any single rule -- e.g. an
+    empty list for a field the caller clearly supplied usually means
+    normalization dropped it (invalid format, detected placeholder)."""
+    response = client.post(
+        "/testing-ui-api/match-pair",
+        json={"patient_a": _SIMPLE_PATIENT, "patient_b": _SIMPLE_PATIENT},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["normalized_fields"]["a"]["last_names"] == ["smith"]
+    assert body["normalized_fields"]["a"]["street_lines"] == ["123 main st"]
+    assert body["normalized_fields"]["b"] == body["normalized_fields"]["a"]
+
+
+def test_match_pair_rule_field_values_key_present(
+    enabled: None, client: TestClient
+) -> None:
+    """field_values is read via getattr on RuleEvaluation, so it stays
+    present (possibly empty, depending on the installed cms-hte-patient-
+    matching version) rather than a KeyError in the client."""
+    response = client.post(
+        "/testing-ui-api/match-pair",
+        json={"patient_a": _SIMPLE_PATIENT, "patient_b": _SIMPLE_PATIENT},
+    )
+
+    assert response.status_code == 200
+    rule_01 = next(r for r in response.json()["rules"] if r["rule_id"] == "01")
+    assert "field_values" in rule_01
+
+
+def test_match_bundle_endpoint_is_404_by_default(client: TestClient) -> None:
+    bundle = {
+        "resourceType": "Bundle",
+        "entry": [{"resource": _SIMPLE_PATIENT}, {"resource": _DIFFERENT_PATIENT}],
+    }
+    response = client.post("/testing-ui-api/match-bundle", json={"bundle": bundle})
+    assert response.status_code == 404
+
+
+def test_match_bundle_invalid_body_returns_400(enabled: None, client: TestClient) -> None:
+    response = client.post("/testing-ui-api/match-bundle", json={"bundle": {}})
+    assert response.status_code == 400
+
+
+def test_match_bundle_requires_at_least_two_patients(
+    enabled: None, client: TestClient
+) -> None:
+    bundle = {"resourceType": "Bundle", "entry": [{"resource": _SIMPLE_PATIENT}]}
+    response = client.post("/testing-ui-api/match-bundle", json={"bundle": bundle})
+    assert response.status_code == 400
+
+
+def test_match_bundle_reports_pairwise_results(
+    enabled: None, client: TestClient
+) -> None:
+    other_patient = {**_SIMPLE_PATIENT, "id": "p2"}
+    bundle = {
+        "resourceType": "Bundle",
+        "entry": [
+            {"resource": {**_SIMPLE_PATIENT, "id": "p1"}},
+            {"resource": other_patient},
+            {"resource": _DIFFERENT_PATIENT},
+        ],
+    }
+    response = client.post("/testing-ui-api/match-bundle", json={"bundle": bundle})
+
+    assert response.status_code == 200
+    body = response.json()
+    assert len(body["patients"]) == 3
+    assert body["patients"][0]["label"] == "John Smith"
+    assert "last_names" in body["patients"][0]["normalized_fields"]
+
+    assert len(body["pairs"]) == 3  # 3 choose 2
+    matched_pair = next(
+        p for p in body["pairs"] if p["a_index"] == 0 and p["b_index"] == 1
+    )
+    assert matched_pair["matched"] is True
+    assert matched_pair["matched_rule_id"] == "01"
+    assert any(r["evaluated"] for r in matched_pair["rules"])
+
+    no_match_pair = next(
+        p for p in body["pairs"] if p["a_index"] == 0 and p["b_index"] == 2
+    )
+    assert no_match_pair["matched"] is False
