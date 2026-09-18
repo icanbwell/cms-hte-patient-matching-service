@@ -1,7 +1,7 @@
 
 bwell:
   environment: "client-sandbox-ue1"
-  iamRole: arn:aws:iam::435975920517:role/client-sandbox-irsa-patient-matching-service
+  iamRole: arn:aws:iam::435975920517:role/csb-use1-irsa-patient-matching-service
   ingress:
     internal:
       enabled: true
