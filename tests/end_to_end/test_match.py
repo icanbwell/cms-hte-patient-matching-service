@@ -190,9 +190,9 @@ async def ial2_client_with_malformed_claims() -> AsyncGenerator[TestClient, None
 
 
 @pytest.fixture
-async def ial2_client_with_insufficient_assurance_level() -> (
-    AsyncGenerator[TestClient, None]
-):
+async def ial2_client_with_insufficient_assurance_level() -> AsyncGenerator[
+    TestClient, None
+]:
     """Like `ial2_client`, but the token verifies successfully with a
     signature-valid identity_assurance_level below IAL2 (e.g. IAL1)."""
     claims = {**_IAL2_CLAIMS, "identity_assurance_level": "ial1"}

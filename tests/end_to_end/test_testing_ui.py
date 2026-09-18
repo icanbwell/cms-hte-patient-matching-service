@@ -314,7 +314,9 @@ def test_match_bundle_endpoint_is_404_by_default(client: TestClient) -> None:
     assert response.status_code == 404
 
 
-def test_match_bundle_invalid_body_returns_400(enabled: None, client: TestClient) -> None:
+def test_match_bundle_invalid_body_returns_400(
+    enabled: None, client: TestClient
+) -> None:
     response = client.post("/testing-ui-api/match-bundle", json={"bundle": {}})
     assert response.status_code == 400
 
@@ -333,9 +335,7 @@ def test_match_bundle_rejects_more_than_max_patients(
     """_MAX_BUNDLE_PATIENTS caps pairwise matching's O(n^2) cost -- without
     this, a large pasted bundle could turn this debug endpoint into an
     accidental load test."""
-    entries = [
-        {"resource": {**_SIMPLE_PATIENT, "id": f"p{i}"}} for i in range(51)
-    ]
+    entries = [{"resource": {**_SIMPLE_PATIENT, "id": f"p{i}"}} for i in range(51)]
     bundle = {"resourceType": "Bundle", "entry": entries}
     response = client.post("/testing-ui-api/match-bundle", json={"bundle": bundle})
     assert response.status_code == 400
