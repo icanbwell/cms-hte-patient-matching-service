@@ -1,0 +1,25 @@
+# Temporary public demo image for Render. NOT the production build:
+# - public python:3.12-slim base (not the private ECR/root-mirror alpine image)
+# - dependencies installed from public PyPI via plain pip (no JFrog index, no build secrets)
+# - no real patient data / CMS credentials are ever configured for this image
+FROM python:3.12-slim
+
+WORKDIR /usr/src/patient_matching_service
+
+RUN pip install --no-cache-dir \
+    "fastapi>=0.110.0" \
+    "uvicorn>=0.28.0" \
+    "prometheus-fastapi-instrumentator>=7.0.0" \
+    "python-json-logger>=3.2.1" \
+    "pyjwt[crypto]>=2.9.0" \
+    "httpx>=0.27.2" \
+    "cms-hte-patient-matching>=0.0.11" \
+    "cms-hte-ial2-reader>=0.0.4"
+
+COPY ./patient_matching_service ./patient_matching_service
+
+RUN groupadd -r appgroup && useradd -r -g appgroup -d /etc/appuser appuser && \
+    chown -R appuser:appgroup /usr/src/patient_matching_service
+USER appuser
+
+CMD ["sh", "-c", "exec uvicorn patient_matching_service.api:app --host 0.0.0.0 --port ${PORT:-8000}"]

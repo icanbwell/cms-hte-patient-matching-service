@@ -1,0 +1,11 @@
+# Temporary public demo deployment on Render. No real data, no real CMS
+# credentials -- ENABLE_TESTING_UI, FHIR_BASE_URL, and AUTH_JWK_URLS are all
+# intentionally left unset: ENABLE_TESTING_UI defaults to disabled, the
+# candidate cache starts empty, and every authenticated route fails closed.
+services:
+  - type: web
+    name: patient-matching-service-demo
+    env: docker
+    dockerfilePath: ./Dockerfile.demo
+    plan: free
+    healthCheckPath: /health

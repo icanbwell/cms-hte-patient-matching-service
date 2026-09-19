@@ -1,0 +1,20 @@
+# TEMPORARY: triggers a redeploy of the public no-real-data demo of this
+# service hosted on Render (see Dockerfile.demo / render.yaml). Delete this
+# workflow, Dockerfile.demo, and render.yaml once the demo is no longer needed.
+#
+# Fully separate from deploy.yml -- manual trigger only, never runs on push.
+name: Deploy Render Demo
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  deploy:
+    name: Trigger Render Deploy Hook
+    runs-on: main
+    steps:
+      - name: Trigger deploy hook
+        run: |
+          curl -sf -X POST "$RENDER_DEPLOY_HOOK_URL"
+        env:
+          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
