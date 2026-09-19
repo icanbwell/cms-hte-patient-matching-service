@@ -23,7 +23,7 @@ on:
 
 env:
   SERVICE_NAME: patient-matching-service
-  SERVICE_NAMESPACE: patient-matching-service-${{ inputs.env }}
+  SERVICE_NAMESPACE: patient-matching-service
 
 jobs:
   deploy:
