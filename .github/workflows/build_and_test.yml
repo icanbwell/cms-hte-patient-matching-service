@@ -9,14 +9,15 @@ on:
     branches: [ main ]
 
 jobs:
-  validate-packages:
-    uses: icanbwell/actions/.github/workflows/validate-pip-packages.yaml@main
-    with:
-      working-directory: .
-    secrets: inherit  # pragma: allowlist secret -- not a literal secret, standard GHA syntax
-
+  # validate-packages (icanbwell/actions' validate-pip-packages.yaml reusable workflow) was
+  # removed from here: this repo is now public (temporary Render demo), and a public repo
+  # cannot call a reusable workflow hosted in a private repo (icanbwell/actions is private;
+  # GitHub's org-wide reusable-workflow access setting only extends to other private/internal
+  # repos in the org). See icanbwell/bwell-cms-hte-patient-matching-service/README.md for why
+  # this wasn't moved there either (that repo's own checkout can't validate this repo's
+  # dependencies without reproducing a dependency-overlay setup disproportionate to a
+  # temporary public state) -- this is a documented gap, not a fix.
   build_and_test:
-    needs: [validate-packages]
     # Was ubuntu-latest (GitHub-hosted) -- switched to the self-hosted `main`
     # runner pool. The pre-commit/up steps below now pull root-mirror/python,
     # which needs the services-account ECR login below; that role
@@ -26,8 +27,8 @@ jobs:
     # ubuntu-latest, which failed with "web identity token provided could not
     # be validated" even with `permissions: id-token: write` set. Every other
     # already-migrated repo's equivalent job (ats-event-consumer's
-    # checks.yml, this repo's own docker-publish.yml) already runs on `main`
-    # for the same reason.
+    # checks.yml, icanbwell/bwell-cms-hte-patient-matching-service's docker-publish.yml)
+    # already runs on `main` for the same reason.
     runs-on: main
     # JFrog creds are needed by both the pre-commit step (builds pre-commit.Dockerfile,
     # which runs `uv sync` against the now-default JFrog index) and the `up`/`tests` steps
