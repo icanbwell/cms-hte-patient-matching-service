@@ -172,7 +172,7 @@ USER appuser
 
 # PYTHONPATH is prepended with the OTel Operator's auto-instrumentation bundle
 # in envs where it's enabled (otel.autoInstrumentation.enabled: true in
-# .helm/dev-ue1.values.yaml / staging-ue1.values.yaml), which shadows our own
+# dev-ue1/staging-ue1 Helm values, now in icanbwell/bwell-cms-hte-patient-matching-service), which shadows our own
 # installed packages with its own frozen copies (e.g. typing_extensions) --
 # see person-matching-service PR #154 / BAI-622 for the root-cause writeup.
 # Re-prepending our venv here restores normal precedence: our packages
