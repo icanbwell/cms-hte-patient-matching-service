@@ -18,22 +18,20 @@ jobs:
   # dependencies without reproducing a dependency-overlay setup disproportionate to a
   # temporary public state) -- this is a documented gap, not a fix.
   build_and_test:
-    # Was ubuntu-latest (GitHub-hosted) -- switched to the self-hosted `main`
-    # runner pool. The pre-commit/up steps below now pull root-mirror/python,
-    # which needs the services-account ECR login below; that role
-    # (services-k8s-service-account-github-actions-runner) is only reachable
-    # via the self-hosted runners' Kubernetes-service-account-federated
-    # identity, not GitHub's native Actions OIDC -- confirmed by testing on
-    # ubuntu-latest, which failed with "web identity token provided could not
-    # be validated" even with `permissions: id-token: write` set. Every other
-    # already-migrated repo's equivalent job (ats-event-consumer's
-    # checks.yml, icanbwell/bwell-cms-hte-patient-matching-service's docker-publish.yml)
-    # already runs on `main` for the same reason.
-    runs-on: main
-    # JFrog creds are needed by both the pre-commit step (builds pre-commit.Dockerfile,
-    # which runs `uv sync` against the now-default JFrog index) and the `up`/`tests` steps
-    # (build the main Dockerfile via docker-compose, whose secrets: block reads these same
-    # env vars).
+    # Back on ubuntu-latest (GitHub-hosted): this repo going public broke self-hosted-runner
+    # access (GitHub gates self-hosted runner groups against public repos by default, so
+    # `runs-on: main` jobs here sat queued forever -- confirmed on this branch's own CI runs).
+    # The only reason this job was ever moved to self-hosted `main` was to pull
+    # root-mirror/python (needs AWS/ECR auth) for the pre-commit/up steps below. Dockerfile
+    # and pre-commit.Dockerfile now build from public.ecr.aws instead, so that requirement is
+    # gone. The Root.io-hardened build now lives in bwell.Dockerfile in
+    # icanbwell/bwell-cms-hte-patient-matching-service (the repo with ECR access), matching
+    # icanbwell/kill-the-clipboard-scanner's own public/private split -- see that repo's
+    # README.md for the rationale (a literal root-mirror FROM in a public-facing repo also
+    # scores as a critical compliance finding, independent of the CI issue).
+    runs-on: ubuntu-latest
+    # JFrog creds (apk repos + uv sync inside the Dockerfiles) are unrelated to the AWS/ECR
+    # access above -- plain GH secrets, no self-hosted runner needed for these.
     env:
       JFROG_READ_USER: ${{ secrets.JFROG_READ_USER }}
       JFROG_READ_TOKEN: ${{ secrets.JFROG_READ_TOKEN }}
@@ -44,40 +42,6 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: '3.12'
-
-      # Both the pre-commit step below (builds pre-commit.Dockerfile) and the
-      # `up`/`tests` steps (build the main Dockerfile via docker-compose) FROM
-      # root-mirror/python, which lives in the services account (856965016623)
-      # -- a separate account from wherever this repo's own images publish to,
-      # needing its own role-to-assume rather than any ambient runner credentials.
-      - name: ECR login (services account, for root-mirror base image pulls)
-        uses: ./.github/actions/ecr-login
-
-      # The self-hosted `main` runner image doesn't ship `make` or a modern
-      # Docker Compose CLI plugin -- unlike ubuntu-latest, which has both
-      # preinstalled. Matches the pattern already used by other repos' `main`
-      # runner CI (e.g. ats-event-consumer, helix.providersearch).
-      - name: Install make
-        run: |
-          sudo apt-get update && sudo apt-get install -y make
-          sudo apt-get clean
-
-      # Verified against the release's published sha256 checksum, not just
-      # downloaded and run blind -- same pattern already used by
-      # ats-event-consumer's install-docker-compose action.
-      - name: Install Docker Compose CLI plugin
-        run: |
-          set -eu
-          DC_VERSION=v2.24.6
-          DC_ASSET="docker-compose-linux-x86_64"
-          DC_URL="https://github.com/docker/compose/releases/download/${DC_VERSION}/${DC_ASSET}"
-          mkdir -p ~/.docker/cli-plugins/
-          curl -SL "${DC_URL}" -o /tmp/docker-compose
-          curl -SL "${DC_URL}.sha256" -o /tmp/docker-compose.sha256
-          echo "$(cut -d' ' -f1 /tmp/docker-compose.sha256)  /tmp/docker-compose" | sha256sum -c -
-          mv /tmp/docker-compose ~/.docker/cli-plugins/docker-compose
-          chmod +x ~/.docker/cli-plugins/docker-compose
-          docker compose version
 
       - name: create .env
         run: |

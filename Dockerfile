@@ -1,6 +1,6 @@
 # Stage 1: Production dependencies
 # This stage installs production Python dependencies using uv
-FROM 856965016623.dkr.ecr.us-east-1.amazonaws.com/root-mirror/python:3.12-alpine3.22 AS python_packages
+FROM public.ecr.aws/docker/library/python:3.12-alpine3.22 AS python_packages
 
 # Set terminal width (COLUMNS) and height (LINES)
 ENV COLUMNS=300
@@ -104,7 +104,7 @@ RUN --mount=type=secret,id=jfrog_read_user --mount=type=secret,id=jfrog_read_tok
     uv sync --frozen --all-extras --group dev --no-install-project --verbose
 
 # Stage 2: Production runtime image
-FROM 856965016623.dkr.ecr.us-east-1.amazonaws.com/root-mirror/python:3.12-alpine3.22 AS production
+FROM public.ecr.aws/docker/library/python:3.12-alpine3.22 AS production
 
 # Set terminal width (COLUMNS) and height (LINES)
 ENV COLUMNS=300
