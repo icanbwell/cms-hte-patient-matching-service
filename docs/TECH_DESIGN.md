@@ -171,7 +171,7 @@ Person-matching-service has a known gap: no global exception handler, so malform
 ### Deployment & CI/CD
 
 - Reuse this repo's existing multi-stage Dockerfile structure (uv + JFrog + Root.io hardened base images) — it's already correctly modeled on the same pattern person-matching-service uses. Confirm whether `patient_matching`'s dependencies (`duckdb`, `rapidfuzz`, `usaddress-scourgify`, etc.) need any additional system build tools analogous to `helix.personmatching`'s `python-crfsuite` C-extension requirement; add an equivalent import smoke-test step in the Dockerfile if so.
-- Reuse the existing GitHub Actions workflows (`build_and_test.yml`, `docker-publish.yml`, `deploy.yml`, `codeql.yml`) — they're already infra-correct per the earlier repo audit; no template deviation needed there.
+- Reuse the existing GitHub Actions workflows — `build_and_test.yml`/`codeql.yml` stay in this repo; `docker-publish.yml`/`deploy.yml` moved to `icanbwell/bwell-cms-hte-patient-matching-service` (this repo went temporarily public, which can't call `icanbwell/actions`' reusable workflows; see that repo's README).
 - Helm: keep the values-only pattern (chart templates centralized in `icanbwell/cie.gha-deploy`), but this is where the cleanup from the audit is mandatory before first prod deploy (see Migration Plan) — the prod/staging/client-sandbox IAM role ARNs currently point at `irsa-complaint-parser`, which is a different service's role.
 
 ## Migration Plan (current PSS-derived skeleton → this design)
