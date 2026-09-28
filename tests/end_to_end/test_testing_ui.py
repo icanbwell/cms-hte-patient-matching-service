@@ -18,6 +18,17 @@ from cmshteial2reader import IAL2Extractor, TokenVerificationError
 from fastapi.testclient import TestClient
 
 from patient_matching_service.api import app
+from patient_matching_service.testing_ui.routes import MATCHING_ENGINE_AVAILABLE
+
+# match-pair/match-bundle need the real matching engine (the optional `matching` extra --
+# see patient_matching_service/service/match_controller.py's module-level comment). They
+# 404 regardless of ENABLE_TESTING_UI when it's absent (see routes.py's
+# _require_matching_engine_available), so every test below that expects a real response
+# from either endpoint needs this skip -- the "_is_404_by_default" tests don't, since 404
+# is what they're asserting either way.
+requires_matching_engine = pytest.mark.skipif(
+    not MATCHING_ENGINE_AVAILABLE, reason="`matching` extra not installed"
+)
 
 _SIMPLE_PATIENT: dict[str, Any] = {
     "resourceType": "Patient",
@@ -223,6 +234,7 @@ def test_decode_ial2_token_malformed_json_returns_400(
     assert response.status_code == 400
 
 
+@requires_matching_engine
 def test_match_pair_invalid_body_returns_400(enabled: None, client: TestClient) -> None:
     response = client.post(
         "/testing-ui-api/match-pair", json={"patient_a": _SIMPLE_PATIENT}
@@ -230,6 +242,7 @@ def test_match_pair_invalid_body_returns_400(enabled: None, client: TestClient) 
     assert response.status_code == 400
 
 
+@requires_matching_engine
 def test_match_pair_malformed_json_returns_400(
     enabled: None, client: TestClient
 ) -> None:
@@ -241,6 +254,7 @@ def test_match_pair_malformed_json_returns_400(
     assert response.status_code == 400
 
 
+@requires_matching_engine
 def test_match_pair_matching_patients_reports_matched_rule(
     enabled: None, client: TestClient
 ) -> None:
@@ -261,6 +275,7 @@ def test_match_pair_matching_patients_reports_matched_rule(
     assert rule_01["field_outcomes"]["first_name"] == "exact"
 
 
+@requires_matching_engine
 def test_match_pair_different_patients_reports_no_match_with_reason(
     enabled: None, client: TestClient
 ) -> None:
@@ -280,6 +295,7 @@ def test_match_pair_different_patients_reports_no_match_with_reason(
     assert rule_01["reason"]
 
 
+@requires_matching_engine
 def test_match_pair_missing_fields_reports_which_fields_are_missing(
     enabled: None, client: TestClient
 ) -> None:
@@ -296,6 +312,7 @@ def test_match_pair_missing_fields_reports_which_fields_are_missing(
     assert "dob" in rule_08["reason"]
 
 
+@requires_matching_engine
 def test_match_pair_reports_normalized_field_values(
     enabled: None, client: TestClient
 ) -> None:
@@ -315,6 +332,7 @@ def test_match_pair_reports_normalized_field_values(
     assert body["normalized_fields"]["b"] == body["normalized_fields"]["a"]
 
 
+@requires_matching_engine
 def test_match_pair_rule_field_values_key_present(
     enabled: None, client: TestClient
 ) -> None:
@@ -340,6 +358,7 @@ def test_match_bundle_endpoint_is_404_by_default(client: TestClient) -> None:
     assert response.status_code == 404
 
 
+@requires_matching_engine
 def test_match_bundle_invalid_body_returns_400(
     enabled: None, client: TestClient
 ) -> None:
@@ -347,6 +366,7 @@ def test_match_bundle_invalid_body_returns_400(
     assert response.status_code == 400
 
 
+@requires_matching_engine
 def test_match_bundle_malformed_json_returns_400(
     enabled: None, client: TestClient
 ) -> None:
@@ -358,6 +378,7 @@ def test_match_bundle_malformed_json_returns_400(
     assert response.status_code == 400
 
 
+@requires_matching_engine
 def test_match_bundle_requires_at_least_two_patients(
     enabled: None, client: TestClient
 ) -> None:
@@ -366,6 +387,7 @@ def test_match_bundle_requires_at_least_two_patients(
     assert response.status_code == 400
 
 
+@requires_matching_engine
 def test_match_bundle_rejects_more_than_max_patients(
     enabled: None, client: TestClient
 ) -> None:
@@ -379,6 +401,7 @@ def test_match_bundle_rejects_more_than_max_patients(
     assert "50" in response.json()["detail"]
 
 
+@requires_matching_engine
 def test_match_bundle_labels_unnamed_patient_by_id_then_position(
     enabled: None, client: TestClient
 ) -> None:
@@ -395,6 +418,7 @@ def test_match_bundle_labels_unnamed_patient_by_id_then_position(
     assert labels == ["no-name-p1", "Patient 1"]
 
 
+@requires_matching_engine
 def test_match_bundle_reports_pairwise_results(
     enabled: None, client: TestClient
 ) -> None:

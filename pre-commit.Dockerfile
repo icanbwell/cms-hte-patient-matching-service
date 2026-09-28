@@ -1,29 +1,11 @@
-FROM 856965016623.dkr.ecr.us-east-1.amazonaws.com/root-mirror/python:3.12-alpine3.22 AS python_packages
+FROM public.ecr.aws/docker/library/python:3.12-alpine3.22 AS python_packages
 
 ENV COLUMNS=300
 
-# Configure JFrog Alpine repos, then install secure-apk, rootio-patcher, and uv from apk
-# (no public registry pulls -- uv no longer comes from ghcr.io/astral-sh/uv) plus
-# git/build-base, which this lint-only image already needed. See the main Dockerfile for
-# the full explanation of this pattern (same auth model, same Alpine-version requirement).
-RUN --mount=type=secret,id=jfrog_read_user --mount=type=secret,id=jfrog_read_token \
-    ALPINE_MINOR=$(cat /etc/alpine-release | cut -d. -f1,2) && \
-    JF_USER="$(cat /run/secrets/jfrog_read_user)" && \
-    JF_TOKEN="$(cat /run/secrets/jfrog_read_token)" && \
-    CREDS="${JF_USER}:${JF_TOKEN}" && \
-    wget -qO /etc/apk/keys/alpine.rsa.pub \
-        "https://${CREDS}@artifacts.bwell.com/artifactory/api/security/keypair/public/repositories/private-alpine" && \
-    wget -qO "/etc/apk/keys/root@alpinelinux.org.rsa.pub" \
-        "https://${CREDS}@artifacts.bwell.com/artifactory/vendor-public-keys/rootio-alpine.pub" && \
-    printf 'machine artifacts.bwell.com login %s password %s\n' "$JF_USER" "$JF_TOKEN" > /root/.netrc && \
-    chmod 600 /root/.netrc && \
-    echo "https://artifacts.bwell.com/artifactory/rootio-alpine/${ALPINE_MINOR}"            >  /etc/apk/repositories && \
-    echo "https://artifacts.bwell.com/artifactory/global-alpine/v${ALPINE_MINOR}/main"      >> /etc/apk/repositories && \
-    echo "https://artifacts.bwell.com/artifactory/global-alpine/v${ALPINE_MINOR}/community" >> /etc/apk/repositories && \
-    echo "https://artifacts.bwell.com/artifactory/private-alpine/main/${ALPINE_MINOR}"      >> /etc/apk/repositories && \
-    apk update && \
-    apk add --no-cache secure-apk rootio-patcher uv git build-base && \
-    rm -f /root/.netrc
+# Install uv from its own public image, git/build-base from the public Alpine CDN -- no
+# JFrog/Root.io involvement, matching the main Dockerfile (see its file-level comment).
+COPY --from=ghcr.io/astral-sh/uv:0.11.16 /uv /uvx /usr/local/bin/
+RUN apk add --no-cache git build-base
 
 ENV UV_PROJECT_ENVIRONMENT=/opt/venv
 ENV UV_COMPILE_BYTECODE=1
@@ -31,11 +13,10 @@ ENV UV_LINK_MODE=copy
 
 COPY pyproject.toml uv.lock* ./
 
-RUN --mount=type=secret,id=jfrog_read_user --mount=type=secret,id=jfrog_read_token \
-    set -eu; \
-    export UV_INDEX_JFROG_USERNAME="$(cat /run/secrets/jfrog_read_user)"; \
-    export UV_INDEX_JFROG_PASSWORD="$(cat /run/secrets/jfrog_read_token)"; \
-    uv sync --frozen --all-extras --group dev --no-install-project --verbose
+# No --extra matching: lint/type-check doesn't need the real cms-hte-patient-matching
+# installed (see pyproject.toml's [[tool.mypy.overrides]] for patient_matching.*), and
+# skipping it here avoids compiling duckdb from source just to run pre-commit.
+RUN uv sync --frozen --group dev --no-install-project --verbose
 
 ENV PATH="/opt/venv/bin:$PATH"
 

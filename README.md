@@ -13,15 +13,8 @@ questions.
 
 ## Setup
 
-Private/proxied packages resolve through bWell's JFrog index. Set `JFROG_READ_TOKEN` in your
-environment before building:
-
-```bash
-export JFROG_READ_USER="you@bwell.zone"
-export JFROG_READ_TOKEN="<your-jfrog-token>"
-```
-
-Add these to `~/.zshrc` or `~/.bashrc` to persist across sessions.
+This repo is temporarily public (BAI-894) and resolves entirely from public sources --
+no JFrog/AWS credentials needed to build or run it.
 
 ```bash
 git clone <this-repo>
@@ -29,7 +22,19 @@ make init
 make up
 ```
 
-The service listens on `http://localhost:5050`.
+The service listens on `http://localhost:5050`. By default this build does **not**
+include the real `cms-hte-patient-matching` engine -- `POST /Patient/$match` returns 503.
+`duckdb` (one of that package's dependencies) publishes no public `musllinux` (Alpine)
+wheel for the version this repo needs, so building with it means compiling from source.
+To build with it anyway:
+
+```bash
+INSTALL_MATCHING_ENGINE=true make up
+```
+
+The hardened production build (`icanbwell/bwell-cms-hte-patient-matching-service`'s
+`bwell.Dockerfile`) always includes it, via that repo's JFrog access to a prebuilt wheel
+(see `icanbwell/python-alpine-wheels`) instead of compiling from source.
 
 ## Configuration
 

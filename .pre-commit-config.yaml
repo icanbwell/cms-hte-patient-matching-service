@@ -98,6 +98,5 @@ repos:
         exclude: >
           (?x)^(
             tests/.*|
-            docker-compose\.yml|
-            .helm/.*
+            docker-compose\.yml
           )$

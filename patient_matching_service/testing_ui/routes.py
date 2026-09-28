@@ -14,23 +14,46 @@ import json
 import logging
 import os
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import jwt
 from cmshteial2reader import IAL2Extractor, TokenVerificationError
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse
-from patient_matching.matching import (
-    APPROVED_RULES,
-    FieldExtractor,
-    InMemoryBackend,
-    MatchingEngine,
-    MatchOutcome,
-    PatientFields,
-)
-from patient_matching.matching.household_rules import CATEGORY_2_RULES
-from patient_matching.normalization import NormalizationManager
 from pydantic import ValidationError
+
+# match-pair/match-bundle below run the real matching engine (same `matching` extra as
+# api.py -- see patient_matching_service/service/match_controller.py's module-level
+# comment for why it's optional). APPROVED_RULES/CATEGORY_2_RULES degrade to empty lists
+# rather than TYPE_CHECKING-only: _ALL_RULES below consumes them as data at *module*
+# import time, not just as type hints, so they need a real (if empty) runtime value.
+# FieldExtractor/InMemoryBackend/MatchingEngine/MatchOutcome/NormalizationManager are only
+# ever referenced inside match_pair/match_bundle, which _require_matching_engine_available
+# 404s before either function body runs when this try fails -- so leaving them unbound is
+# fine; nothing below imports them at module scope for its own sake.
+try:
+    from patient_matching.matching import (
+        APPROVED_RULES,
+        FieldExtractor,
+        InMemoryBackend,
+        MatchingEngine,
+        MatchOutcome,
+    )
+    from patient_matching.matching.household_rules import CATEGORY_2_RULES
+    from patient_matching.normalization import NormalizationManager
+
+    MATCHING_ENGINE_AVAILABLE = True
+except ImportError:
+    # Empty tuples, not lists: APPROVED_RULES/CATEGORY_2_RULES are
+    # tuple[MatchingRule, ...]/tuple[HouseholdIndividualRule, ...] when the import
+    # succeeds, and mypy checks this fallback against that type regardless of which
+    # branch actually runs.
+    APPROVED_RULES = ()
+    CATEGORY_2_RULES = ()
+    MATCHING_ENGINE_AVAILABLE = False
+
+if TYPE_CHECKING:
+    from patient_matching.matching import PatientFields
 
 logger = logging.getLogger(__name__)
 
@@ -55,6 +78,17 @@ def _require_testing_ui_enabled() -> None:
     404, not 403: a disabled debug UI shouldn't reveal that it exists.
     """
     if not is_testing_ui_enabled():
+        raise HTTPException(status_code=404, detail="Not Found")
+
+
+def _require_matching_engine_available() -> None:
+    """Additional dependency for match-pair/match-bundle, which run the real matching
+    engine (cms-hte-patient-matching, the optional `matching` extra -- see this module's
+    import block above). 404, not 503: this is a debug UI, not the production $match
+    endpoint, so a disabled feature degrades the same way as the rest of this
+    already-gated-off module rather than distinguishing why it's unavailable.
+    """
+    if not MATCHING_ENGINE_AVAILABLE:
         raise HTTPException(status_code=404, detail="Not Found")
 
 
@@ -281,7 +315,10 @@ async def decode_ial2_token(request: Request) -> JSONResponse:
 
 @router.post(
     "/testing-ui-api/match-pair",
-    dependencies=[Depends(_require_testing_ui_enabled)],
+    dependencies=[
+        Depends(_require_testing_ui_enabled),
+        Depends(_require_matching_engine_available),
+    ],
     include_in_schema=False,
 )
 async def match_pair(request: Request) -> dict[str, Any]:
@@ -357,7 +394,10 @@ def _patient_label(patient: dict[str, Any], index: int) -> str:
 
 @router.post(
     "/testing-ui-api/match-bundle",
-    dependencies=[Depends(_require_testing_ui_enabled)],
+    dependencies=[
+        Depends(_require_testing_ui_enabled),
+        Depends(_require_matching_engine_available),
+    ],
     include_in_schema=False,
 )
 async def match_bundle(request: Request) -> dict[str, Any]:

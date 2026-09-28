@@ -6,9 +6,11 @@ services:
       dockerfile: Dockerfile
       context: .
       target: development
-      secrets:
-        - jfrog_read_user
-        - jfrog_read_token
+      args:
+        # Set INSTALL_MATCHING_ENGINE=true in the host env to build with the real
+        # cms-hte-patient-matching engine (compiles duckdb from source -- see
+        # Dockerfile's file-level comment). Defaults to false: $match returns 503.
+        INSTALL_MATCHING_ENGINE: ${INSTALL_MATCHING_ENGINE:-false}
     container_name: patient_matching_service
     environment:
       DEBUG_METRICS: 0
@@ -24,9 +26,3 @@ services:
       interval: 1m30s
       timeout: 10s
       retries: 3
-
-secrets:
-  jfrog_read_user:
-    environment: JFROG_READ_USER
-  jfrog_read_token:
-    environment: JFROG_READ_TOKEN

@@ -1,37 +1,40 @@
+# This repo is temporarily public (BAI-894) and carries no JFrog/AWS credentials as a
+# result -- org-scoped secrets and self-hosted-runner access don't reach a public repo.
+# Everything below resolves from public sources (public.ecr.aws, public Alpine CDN,
+# public PyPI), matching icanbwell/kill-the-clipboard-scanner's own public Dockerfile.
+# The hardened build (Root.io-mirror base, JFrog-proxied/rootio-patched OS packages, a
+# prebuilt JFrog-hosted duckdb wheel) lives in bwell.Dockerfile in
+# icanbwell/bwell-cms-hte-patient-matching-service, the repo that still has JFrog/ECR
+# access.
+#
+# INSTALL_MATCHING_ENGINE controls whether cms-hte-patient-matching (the `matching` extra
+# in pyproject.toml) gets installed. It pulls in duckdb, which publishes no musllinux
+# (Alpine) wheel for the version this repo needs -- see icanbwell/python-alpine-wheels,
+# which builds one, but only publishes it to JFrog. Without JFrog access, duckdb has to
+# be compiled from source instead (needs a C++ toolchain, added below only when this arg
+# is true) -- see patient_matching_service/service/match_controller.py's
+# MATCHING_ENGINE_AVAILABLE guard for how the app degrades when it's false.
+ARG INSTALL_MATCHING_ENGINE=false
+
 # Stage 1: Production dependencies
 # This stage installs production Python dependencies using uv
-FROM 856965016623.dkr.ecr.us-east-1.amazonaws.com/root-mirror/python:3.12-alpine3.22 AS python_packages
+FROM public.ecr.aws/docker/library/python:3.12-alpine3.22 AS python_packages
+ARG INSTALL_MATCHING_ENGINE
 
 # Set terminal width (COLUMNS) and height (LINES)
 ENV COLUMNS=300
 
-# Configure JFrog Alpine repos, then install secure-apk, rootio-patcher, and uv from apk
-# (no public registry pulls -- uv no longer comes from ghcr.io/astral-sh/uv) plus git,
-# which this project already needed. uv must come from apk so the whole toolchain is
-# sourced from the hardened JFrog/Root.io mirrors, which means this repo setup has to run
-# BEFORE `uv sync` (the opposite order from the old ghcr.io-based copy).
-#
-# Auth: JFrog creds go to /root/.netrc so apk can authenticate; repo URLs stay clean (no
-# inline creds). This is the builder stage, which is discarded (only /opt/venv is copied
-# into later stages), so the .netrc left behind here never reaches a shipped image.
-# Requires Alpine v3.22+ for apk's .netrc support -- this image is alpine3.22, so OK.
-RUN --mount=type=secret,id=jfrog_read_user --mount=type=secret,id=jfrog_read_token \
-    ALPINE_MINOR=$(cat /etc/alpine-release | cut -d. -f1,2) && \
-    JF_USER="$(cat /run/secrets/jfrog_read_user)" && \
-    JF_TOKEN="$(cat /run/secrets/jfrog_read_token)" && \
-    CREDS="${JF_USER}:${JF_TOKEN}" && \
-    wget -qO /etc/apk/keys/alpine.rsa.pub \
-        "https://${CREDS}@artifacts.bwell.com/artifactory/api/security/keypair/public/repositories/private-alpine" && \
-    wget -qO "/etc/apk/keys/root@alpinelinux.org.rsa.pub" \
-        "https://${CREDS}@artifacts.bwell.com/artifactory/vendor-public-keys/rootio-alpine.pub" && \
-    printf 'machine artifacts.bwell.com login %s password %s\n' "$JF_USER" "$JF_TOKEN" > /root/.netrc && \
-    chmod 600 /root/.netrc && \
-    echo "https://artifacts.bwell.com/artifactory/rootio-alpine/${ALPINE_MINOR}"            >  /etc/apk/repositories && \
-    echo "https://artifacts.bwell.com/artifactory/global-alpine/v${ALPINE_MINOR}/main"      >> /etc/apk/repositories && \
-    echo "https://artifacts.bwell.com/artifactory/global-alpine/v${ALPINE_MINOR}/community" >> /etc/apk/repositories && \
-    echo "https://artifacts.bwell.com/artifactory/private-alpine/main/${ALPINE_MINOR}"      >> /etc/apk/repositories && \
-    apk update && \
-    apk add --no-cache secure-apk rootio-patcher uv git
+# Install uv from its own public image (no public registry pulls needed beyond this).
+COPY --from=ghcr.io/astral-sh/uv:0.11.16 /uv /uvx /usr/local/bin/
+
+# git is required for some Python packages. build-base/cmake are only needed to compile
+# duckdb from source when INSTALL_MATCHING_ENGINE=true (see the file-level comment above)
+# -- skipped otherwise so the default build stays fast and minimal.
+RUN if [ "$INSTALL_MATCHING_ENGINE" = "true" ]; then \
+        apk add --no-cache git build-base cmake; \
+    else \
+        apk add --no-cache git; \
+    fi
 
 # Set environment variables for uv
 ENV UV_PROJECT_ENVIRONMENT=/opt/venv
@@ -44,51 +47,14 @@ WORKDIR /usr/src/patient_matching_service
 # Copy pyproject.toml and uv.lock to the working directory
 COPY pyproject.toml uv.lock* /usr/src/patient_matching_service/
 
-# Install all production dependencies using uv. Auth via JFrog index env vars -- uv reads
-# UV_INDEX_JFROG_USERNAME/PASSWORD ("jfrog" is the index name in pyproject.toml), passed as
-# BuildKit secrets, never written to disk. Uses the real JFROG_READ_USER, not an empty
-# string -- Artifactory's virtual-pypi rejects an empty username with 403 even given a
-# valid token as the password (confirmed directly against this same index elsewhere).
-RUN --mount=type=secret,id=jfrog_read_user --mount=type=secret,id=jfrog_read_token \
-    set -eu; \
-    export UV_INDEX_JFROG_USERNAME="$(cat /run/secrets/jfrog_read_user)"; \
-    export UV_INDEX_JFROG_PASSWORD="$(cat /run/secrets/jfrog_read_token)"; \
-    uv sync --frozen --all-extras --no-install-project --verbose
-
-# Validate dependencies against the Root.io vulnerability database (dry-run only).
-# rootio_patcher inspects the venv via `python -m pip list`, but uv-created venvs omit
-# pip -- install it through the JFrog index so the inventory is accurate. pip is only
-# here to satisfy that inventory and is never copied to a runtime image (only /opt/venv
-# is copied forward).
-#
-# Installed with `uv pip install`, NOT `python -m ensurepip`: this base image patches
-# ensurepip._PACKAGE_NAMES to ('rootio_setuptools', 'rootio_pip') but bundles no
-# rootio_setuptools wheel in ensurepip/_bundled/, and the bootstrap installs --no-index
-# --find-links against that same directory -- so the call fails outright ("No matching
-# distribution found for rootio_setuptools") and breaks every build in this repo
-# regardless of diff. It fails at this step, so it reads as a dependency problem when
-# the build actually died before the patcher ran. uv needs no pre-existing pip, so this
-# sidesteps the patched module entirely. Unpinned, matching the previous
-# `--upgrade pip` behaviour (root.io patches specific older pins, not head).
-#
-# Auth via the same UV_INDEX_JFROG_USERNAME/PASSWORD + named `--index jfrog=...` used
-# by the `uv sync` call above (name comes from pyproject.toml's [[tool.uv.index]]),
-# not `https://:$TOKEN@...` interpolated into --index-url: that form puts the token in
-# uv's process arguments, which Aikido flagged on the identical line in
-# bwell-ai-plugin-marketplace#223.
-RUN --mount=type=secret,id=jfrog_read_user --mount=type=secret,id=jfrog_read_token \
-    set -eu; \
-    export UV_INDEX_JFROG_USERNAME="$(cat /run/secrets/jfrog_read_user)"; \
-    export UV_INDEX_JFROG_PASSWORD="$(cat /run/secrets/jfrog_read_token)"; \
-    uv pip install --python /opt/venv/bin/python --no-cache \
-    --index jfrog=https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/simple \
-    pip && \
-    ROOTIO_PKG_URL=https://artifacts.bwell.com/artifactory/api \
-    ROOTIO_PIP_INDEX_URL=https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/simple \
-    rootio_patcher pip remediate --dry-run --python-path=/opt/venv/bin/python
-
-# Remove JFrog credentials (this stage is discarded; only /opt/venv is copied forward)
-RUN rm -rf ~/.netrc
+# Install all production dependencies using uv (public PyPI -- no JFrog auth needed).
+# --extra matching (cms-hte-patient-matching + duckdb, compiled from source above) only
+# when explicitly requested.
+RUN if [ "$INSTALL_MATCHING_ENGINE" = "true" ]; then \
+        uv sync --frozen --extra matching --no-install-project --verbose; \
+    else \
+        uv sync --frozen --no-install-project --verbose; \
+    fi
 
 # Copy uv.lock from working directory to /tmp for retrieval if needed
 RUN cp -n /usr/src/patient_matching_service/uv.lock /tmp/uv.lock
@@ -96,42 +62,22 @@ RUN cp -n /usr/src/patient_matching_service/uv.lock /tmp/uv.lock
 # Stage 1b: Development dependencies (extends production)
 # This stage installs dev dependencies on top of production
 FROM python_packages AS python_packages_dev
+ARG INSTALL_MATCHING_ENGINE
 
-RUN --mount=type=secret,id=jfrog_read_user --mount=type=secret,id=jfrog_read_token \
-    set -eu; \
-    export UV_INDEX_JFROG_USERNAME="$(cat /run/secrets/jfrog_read_user)"; \
-    export UV_INDEX_JFROG_PASSWORD="$(cat /run/secrets/jfrog_read_token)"; \
-    uv sync --frozen --all-extras --group dev --no-install-project --verbose
+RUN if [ "$INSTALL_MATCHING_ENGINE" = "true" ]; then \
+        uv sync --frozen --extra matching --group dev --no-install-project --verbose; \
+    else \
+        uv sync --frozen --group dev --no-install-project --verbose; \
+    fi
 
 # Stage 2: Production runtime image
-FROM 856965016623.dkr.ecr.us-east-1.amazonaws.com/root-mirror/python:3.12-alpine3.22 AS production
+FROM public.ecr.aws/docker/library/python:3.12-alpine3.22 AS production
 
 # Set terminal width (COLUMNS) and height (LINES)
 ENV COLUMNS=300
 
-# Configure JFrog Alpine repos (temporarily -- cleaned up at the end of this RUN so no
-# credentials persist in this stage's layers, since this stage IS a shipped image, not a
-# discarded builder stage) and install runtime OS deps from the hardened mirror instead of
-# the public Alpine CDN. Same auth pattern as the builder stage; see the comment there for
-# the Alpine-version requirement.
-RUN --mount=type=secret,id=jfrog_read_user --mount=type=secret,id=jfrog_read_token \
-    ALPINE_MINOR=$(cat /etc/alpine-release | cut -d. -f1,2) && \
-    JF_USER="$(cat /run/secrets/jfrog_read_user)" && \
-    JF_TOKEN="$(cat /run/secrets/jfrog_read_token)" && \
-    CREDS="${JF_USER}:${JF_TOKEN}" && \
-    wget -qO /etc/apk/keys/alpine.rsa.pub \
-        "https://${CREDS}@artifacts.bwell.com/artifactory/api/security/keypair/public/repositories/private-alpine" && \
-    wget -qO "/etc/apk/keys/root@alpinelinux.org.rsa.pub" \
-        "https://${CREDS}@artifacts.bwell.com/artifactory/vendor-public-keys/rootio-alpine.pub" && \
-    printf 'machine artifacts.bwell.com login %s password %s\n' "$JF_USER" "$JF_TOKEN" > /root/.netrc && \
-    chmod 600 /root/.netrc && \
-    echo "https://artifacts.bwell.com/artifactory/rootio-alpine/${ALPINE_MINOR}"            >  /etc/apk/repositories && \
-    echo "https://artifacts.bwell.com/artifactory/global-alpine/v${ALPINE_MINOR}/main"      >> /etc/apk/repositories && \
-    echo "https://artifacts.bwell.com/artifactory/global-alpine/v${ALPINE_MINOR}/community" >> /etc/apk/repositories && \
-    echo "https://artifacts.bwell.com/artifactory/private-alpine/main/${ALPINE_MINOR}"      >> /etc/apk/repositories && \
-    apk update && \
-    apk add --no-cache curl libstdc++ libffi git && \
-    rm -f /root/.netrc
+# Install runtime OS deps from the public Alpine CDN.
+RUN apk add --no-cache curl libstdc++ libffi git
 
 # Set environment variables for project configuration
 ENV PROJECT_DIR=/usr/src/patient_matching_service
@@ -172,7 +118,7 @@ USER appuser
 
 # PYTHONPATH is prepended with the OTel Operator's auto-instrumentation bundle
 # in envs where it's enabled (otel.autoInstrumentation.enabled: true in
-# .helm/dev-ue1.values.yaml / staging-ue1.values.yaml), which shadows our own
+# dev-ue1/staging-ue1 Helm values, now in icanbwell/bwell-cms-hte-patient-matching-service), which shadows our own
 # installed packages with its own frozen copies (e.g. typing_extensions) --
 # see person-matching-service PR #154 / BAI-622 for the root-cause writeup.
 # Re-prepending our venv here restores normal precedence: our packages

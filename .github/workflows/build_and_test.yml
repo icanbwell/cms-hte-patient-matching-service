@@ -9,33 +9,28 @@ on:
     branches: [ main ]
 
 jobs:
-  validate-packages:
-    uses: icanbwell/actions/.github/workflows/validate-pip-packages.yaml@main
-    with:
-      working-directory: .
-    secrets: inherit  # pragma: allowlist secret -- not a literal secret, standard GHA syntax
-
+  # validate-packages (icanbwell/actions' validate-pip-packages.yaml reusable workflow) was
+  # removed from here: this repo is now public (temporary Render demo), and a public repo
+  # cannot call a reusable workflow hosted in a private repo (icanbwell/actions is private;
+  # GitHub's org-wide reusable-workflow access setting only extends to other private/internal
+  # repos in the org). See icanbwell/bwell-cms-hte-patient-matching-service/README.md for why
+  # this wasn't moved there either (that repo's own checkout can't validate this repo's
+  # dependencies without reproducing a dependency-overlay setup disproportionate to a
+  # temporary public state) -- this is a documented gap, not a fix.
   build_and_test:
-    needs: [validate-packages]
-    # Was ubuntu-latest (GitHub-hosted) -- switched to the self-hosted `main`
-    # runner pool. The pre-commit/up steps below now pull root-mirror/python,
-    # which needs the services-account ECR login below; that role
-    # (services-k8s-service-account-github-actions-runner) is only reachable
-    # via the self-hosted runners' Kubernetes-service-account-federated
-    # identity, not GitHub's native Actions OIDC -- confirmed by testing on
-    # ubuntu-latest, which failed with "web identity token provided could not
-    # be validated" even with `permissions: id-token: write` set. Every other
-    # already-migrated repo's equivalent job (ats-event-consumer's
-    # checks.yml, this repo's own docker-publish.yml) already runs on `main`
-    # for the same reason.
-    runs-on: main
-    # JFrog creds are needed by both the pre-commit step (builds pre-commit.Dockerfile,
-    # which runs `uv sync` against the now-default JFrog index) and the `up`/`tests` steps
-    # (build the main Dockerfile via docker-compose, whose secrets: block reads these same
-    # env vars).
-    env:
-      JFROG_READ_USER: ${{ secrets.JFROG_READ_USER }}
-      JFROG_READ_TOKEN: ${{ secrets.JFROG_READ_TOKEN }}
+    # Back on ubuntu-latest (GitHub-hosted): this repo going public broke self-hosted-runner
+    # access (GitHub gates self-hosted runner groups against public repos by default, so
+    # `runs-on: main` jobs here sat queued forever -- confirmed on this branch's own CI runs)
+    # AND org-scoped secrets (JFROG_READ_USER/JFROG_READ_TOKEN) stop reaching a public repo
+    # too (confirmed: came through empty even on ubuntu-latest). Dockerfile/pre-commit.Dockerfile
+    # now build entirely from public sources (base image, apk packages, uv/PyPI resolution) --
+    # no JFrog/AWS credentials needed at all. The Root.io/JFrog-hardened build lives in
+    # bwell.Dockerfile in icanbwell/bwell-cms-hte-patient-matching-service (the repo those
+    # credentials still reach), matching icanbwell/kill-the-clipboard-scanner's own
+    # public/private split -- see that repo's README.md for the rationale (a literal
+    # root-mirror FROM in a public-facing repo also scores as a critical compliance finding,
+    # independent of the CI issue).
+    runs-on: ubuntu-latest
 
     steps:
       # Checks-out your repository
@@ -44,43 +39,10 @@ jobs:
         with:
           python-version: '3.12'
 
-      # Both the pre-commit step below (builds pre-commit.Dockerfile) and the
-      # `up`/`tests` steps (build the main Dockerfile via docker-compose) FROM
-      # root-mirror/python, which lives in the services account (856965016623)
-      # -- a separate account from wherever this repo's own images publish to,
-      # needing its own role-to-assume rather than any ambient runner credentials.
-      - name: ECR login (services account, for root-mirror base image pulls)
-        uses: ./.github/actions/ecr-login
-
-      # The self-hosted `main` runner image doesn't ship `make` or a modern
-      # Docker Compose CLI plugin -- unlike ubuntu-latest, which has both
-      # preinstalled. Matches the pattern already used by other repos' `main`
-      # runner CI (e.g. ats-event-consumer, helix.providersearch).
-      - name: Install make
-        run: |
-          sudo apt-get update && sudo apt-get install -y make
-          sudo apt-get clean
-
-      # Verified against the release's published sha256 checksum, not just
-      # downloaded and run blind -- same pattern already used by
-      # ats-event-consumer's install-docker-compose action.
-      - name: Install Docker Compose CLI plugin
-        run: |
-          set -eu
-          DC_VERSION=v2.24.6
-          DC_ASSET="docker-compose-linux-x86_64"
-          DC_URL="https://github.com/docker/compose/releases/download/${DC_VERSION}/${DC_ASSET}"
-          mkdir -p ~/.docker/cli-plugins/
-          curl -SL "${DC_URL}" -o /tmp/docker-compose
-          curl -SL "${DC_URL}.sha256" -o /tmp/docker-compose.sha256
-          echo "$(cut -d' ' -f1 /tmp/docker-compose.sha256)  /tmp/docker-compose" | sha256sum -c -
-          mv /tmp/docker-compose ~/.docker/cli-plugins/docker-compose
-          chmod +x ~/.docker/cli-plugins/docker-compose
-          docker compose version
-
       - name: create .env
         run: |
           touch ./.env
+          echo "INSTALL_MATCHING_ENGINE=true" >> ./.env
 
       - name: pre-commit
         run: make run-pre-commit && make clean-pre-commit
@@ -95,7 +57,13 @@ jobs:
           chmod -R 777 ${{ github.workspace }}/reports
 
 
-      # setup and install everything and run tests
+      # INSTALL_MATCHING_ENGINE=true (see .env above) builds with the real
+      # cms-hte-patient-matching engine -- duckdb has no public musllinux wheel, so this
+      # compiles it from source (needs the build-base/cmake toolchain Dockerfile adds for
+      # this arg; no JFrog access needed, just more build time -- ~5-10 min, verified
+      # locally). Without this, tests/end_to_end/test_match.py and
+      # tests/unit/test_match_controller.py would skip and the testing-ui match-pair/
+      # match-bundle tests would all skip too (see their pytest.importorskip/skipif).
       - name: up
         run: make up
 

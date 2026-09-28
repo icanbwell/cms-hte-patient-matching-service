@@ -17,8 +17,15 @@ from collections.abc import AsyncGenerator
 from typing import Any
 
 import pytest
+import pytest_asyncio
 from cmshteial2reader import IAL2Extractor, TokenVerificationError
 from fastapi.testclient import TestClient
+
+# The `matching` extra isn't installed in every build (see
+# patient_matching_service/service/match_controller.py's module-level comment) --
+# skip this whole module rather than erroring at collection when it's absent.
+pytest.importorskip("patient_matching", reason="`matching` extra not installed")
+
 from patient_matching.api.service import PatientMatcherService
 from patient_matching.cache.cache_backend import CachedPatient
 from patient_matching.cache.duckdb_cache import DuckDBCache
@@ -63,7 +70,7 @@ async def _seeded_cache() -> DuckDBCache:
     return cache
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def client() -> AsyncGenerator[TestClient, None]:
     # NOT `= dict`: FastAPI's dependency-override resolution introspects the
     # override callable's own signature (to resolve *its* sub-dependencies),
@@ -157,7 +164,7 @@ def _make_ial2_client(verifier: _StubIAL2Verifier) -> AsyncGenerator[TestClient,
     return _generator()
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def ial2_client() -> AsyncGenerator[TestClient, None]:
     """Like `client`, but the auth token carries a cms_smart identity
     (extensions.cms_smart.id_token) and the controller is wired with a
@@ -166,7 +173,7 @@ async def ial2_client() -> AsyncGenerator[TestClient, None]:
         yield c
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def ial2_client_with_invalid_token() -> AsyncGenerator[TestClient, None]:
     """Like `ial2_client`, but the verifier rejects the token outright
     (bad signature/audience/issuer)."""
@@ -180,7 +187,7 @@ async def ial2_client_with_invalid_token() -> AsyncGenerator[TestClient, None]:
         yield c
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def ial2_client_with_malformed_claims() -> AsyncGenerator[TestClient, None]:
     """Like `ial2_client`, but the token verifies successfully yet its
     claims produce a FHIR-schema-invalid Patient (wrong-typed field)."""
@@ -189,7 +196,7 @@ async def ial2_client_with_malformed_claims() -> AsyncGenerator[TestClient, None
         yield c
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def ial2_client_with_insufficient_assurance_level() -> AsyncGenerator[
     TestClient, None
 ]:

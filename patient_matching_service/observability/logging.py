@@ -3,7 +3,7 @@
 Ported from person-matching-service's observability/logging.py, minus its
 OpenTelemetry trace-correlation piece. OTel instrumentation here comes from
 the OTel Operator's auto-instrumentation (otel.autoInstrumentation.enabled
-in .helm/dev-ue1.values.yaml / staging-ue1.values.yaml, BAI-622), which
+in dev-ue1/staging-ue1 Helm values, now in icanbwell/bwell-cms-hte-patient-matching-service, BAI-622), which
 patches the process from outside application code -- it does not stamp
 trace_id/span_id onto log records. Port TraceContextFilter from the source
 above if log-trace correlation in Groundcover is needed.
