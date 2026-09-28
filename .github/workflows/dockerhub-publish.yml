@@ -1,0 +1,48 @@
+name: Publish to Docker Hub
+
+# Publishes this repo's public image on release -- independent of b.well's own ECR/Kubernetes
+# deploy pipeline (which lives in the private bwell-cms-hte-patient-matching-service repo and
+# needs b.well-internal infra this workflow deliberately does not: plain ubuntu-latest, no
+# self-hosted runner, no AWS/VPC dependency). Mirrors icanbwell/kill-the-clipboard-scanner's
+# dockerhub-publish.yml.
+#
+# Skips pre-release tags (e.g. "0.0.6-rc1") -- only real releases publish to Docker Hub.
+on:
+  release:
+    types: [created]
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    if: ${{ !contains(github.event.release.tag_name, '-') }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: Dockerfile
+          target: production
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            icanbwell/cms-hte-patient-matching-service:latest
+            icanbwell/cms-hte-patient-matching-service:${{ github.event.release.tag_name }}
+          cache-from: type=gha,scope=dockerhub-publish
+          cache-to: type=gha,mode=max,scope=dockerhub-publish
