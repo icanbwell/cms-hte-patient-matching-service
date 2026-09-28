@@ -63,7 +63,14 @@ package = false
 [tool.pytest.ini_options]
 addopts = "--capture=fd"
 anyio_backend = "asyncio"
-asyncio_mode = "auto"
+# "strict", not "auto": auto-mode detection silently doesn't work in this repo (anyio's
+# pytest plugin is also registered alongside pytest-asyncio, and that combination breaks
+# pytest-asyncio's auto-mode under pytest 9.1.1 -- confirmed directly, every async test/
+# fixture was failing with "async def functions are not natively supported" despite
+# asyncio_mode = "auto" being set). Every async test/fixture now carries an explicit
+# @pytest.mark.asyncio/@pytest_asyncio.fixture, so "strict" is both accurate and makes a
+# future test that forgets the marker fail loudly instead of silently not running async.
+asyncio_mode = "strict"
 asyncio_default_fixture_loop_scope = "function"
 asyncio_default_test_loop_scope = "function"
 

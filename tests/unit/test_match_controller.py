@@ -7,8 +7,9 @@ from pydantic import ValidationError
 
 # The `matching` extra isn't installed in every build (see
 # patient_matching_service/service/match_controller.py's module-level comment). This
-# module mocks PatientMatcherService entirely, but still imports the real MatchResponse
-# type below to build fixture data -- skip rather than error at collection when absent.
+# module mocks PatientMatcherService entirely, but still imports the real
+# MatchResponse below to build fixture data -- skip rather than error at collection
+# when absent.
 pytest.importorskip("patient_matching", reason="`matching` extra not installed")
 
 from patient_matching.api.service import MatchResponse
