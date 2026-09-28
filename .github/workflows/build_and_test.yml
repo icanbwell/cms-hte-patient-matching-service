@@ -20,21 +20,17 @@ jobs:
   build_and_test:
     # Back on ubuntu-latest (GitHub-hosted): this repo going public broke self-hosted-runner
     # access (GitHub gates self-hosted runner groups against public repos by default, so
-    # `runs-on: main` jobs here sat queued forever -- confirmed on this branch's own CI runs).
-    # The only reason this job was ever moved to self-hosted `main` was to pull
-    # root-mirror/python (needs AWS/ECR auth) for the pre-commit/up steps below. Dockerfile
-    # and pre-commit.Dockerfile now build from public.ecr.aws instead, so that requirement is
-    # gone. The Root.io-hardened build now lives in bwell.Dockerfile in
-    # icanbwell/bwell-cms-hte-patient-matching-service (the repo with ECR access), matching
-    # icanbwell/kill-the-clipboard-scanner's own public/private split -- see that repo's
-    # README.md for the rationale (a literal root-mirror FROM in a public-facing repo also
-    # scores as a critical compliance finding, independent of the CI issue).
+    # `runs-on: main` jobs here sat queued forever -- confirmed on this branch's own CI runs)
+    # AND org-scoped secrets (JFROG_READ_USER/JFROG_READ_TOKEN) stop reaching a public repo
+    # too (confirmed: came through empty even on ubuntu-latest). Dockerfile/pre-commit.Dockerfile
+    # now build entirely from public sources (base image, apk packages, uv/PyPI resolution) --
+    # no JFrog/AWS credentials needed at all. The Root.io/JFrog-hardened build lives in
+    # bwell.Dockerfile in icanbwell/bwell-cms-hte-patient-matching-service (the repo those
+    # credentials still reach), matching icanbwell/kill-the-clipboard-scanner's own
+    # public/private split -- see that repo's README.md for the rationale (a literal
+    # root-mirror FROM in a public-facing repo also scores as a critical compliance finding,
+    # independent of the CI issue).
     runs-on: ubuntu-latest
-    # JFrog creds (apk repos + uv sync inside the Dockerfiles) are unrelated to the AWS/ECR
-    # access above -- plain GH secrets, no self-hosted runner needed for these.
-    env:
-      JFROG_READ_USER: ${{ secrets.JFROG_READ_USER }}
-      JFROG_READ_TOKEN: ${{ secrets.JFROG_READ_TOKEN }}
 
     steps:
       # Checks-out your repository
@@ -46,6 +42,7 @@ jobs:
       - name: create .env
         run: |
           touch ./.env
+          echo "INSTALL_MATCHING_ENGINE=true" >> ./.env
 
       - name: pre-commit
         run: make run-pre-commit && make clean-pre-commit
@@ -60,7 +57,13 @@ jobs:
           chmod -R 777 ${{ github.workspace }}/reports
 
 
-      # setup and install everything and run tests
+      # INSTALL_MATCHING_ENGINE=true (see .env above) builds with the real
+      # cms-hte-patient-matching engine -- duckdb has no public musllinux wheel, so this
+      # compiles it from source (needs the build-base/cmake toolchain Dockerfile adds for
+      # this arg; no JFrog access needed, just more build time -- ~5-10 min, verified
+      # locally). Without this, tests/end_to_end/test_match.py and
+      # tests/unit/test_match_controller.py would skip and the testing-ui match-pair/
+      # match-bundle tests would all skip too (see their pytest.importorskip/skipif).
       - name: up
         run: make up
 

@@ -14,18 +14,39 @@ end-to-end via its configured CacheBackend.
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from cmshteial2reader import IAL2Extractor, extract_cms_smart_id_token
 from fastapi import Request
-from patient_matching.api.service import MatchResponse, PatientMatcherService
 from pydantic import ValidationError
+
+if TYPE_CHECKING:
+    from patient_matching.api.service import MatchResponse, PatientMatcherService
+
+# Whether the `matching` extra (cms-hte-patient-matching, pulling in duckdb) is installed
+# in this build -- see pyproject.toml's [project.optional-dependencies] and Dockerfile's
+# INSTALL_MATCHING_ENGINE build arg for why this is conditional at all. `from __future__
+# import annotations` above means the `PatientMatcherService`/`MatchResponse` type hints
+# throughout this file are never evaluated at runtime, so they're safe to reference even
+# when the underlying import (TYPE_CHECKING-only) never actually happens.
+try:
+    import patient_matching  # noqa: F401
+
+    MATCHING_ENGINE_AVAILABLE = True
+except ImportError:
+    MATCHING_ENGINE_AVAILABLE = False
 
 logger = logging.getLogger(__name__)
 
 
 class InvalidMatchRequest(ValueError):
     """The request body isn't a valid FHIR $match Parameters payload."""
+
+
+class MatchingEngineUnavailableError(RuntimeError):
+    """cms-hte-patient-matching isn't installed in this build (MATCHING_ENGINE_AVAILABLE
+    is False) -- /Patient/$match can't be served. See this module's module-level comment.
+    """
 
 
 class Ial2PatientValidationError(ValueError):
@@ -53,12 +74,18 @@ class MatchController:
     (see api._build_ial2_extractor), a request whose auth token carries a
     cms_smart identity is rejected rather than silently falling back to
     requiring a body Patient.
+
+    service is also optional: None when MATCHING_ENGINE_AVAILABLE is False (the
+    `matching` extra isn't installed in this build -- see this module's
+    module-level comment). match() raises MatchingEngineUnavailableError in
+    that case rather than the constructor rejecting a None service outright,
+    so the app can still start and serve every other route.
     """
 
     def __init__(
         self,
         *,
-        service: PatientMatcherService,
+        service: PatientMatcherService | None,
         ial2_extractor: IAL2Extractor | None = None,
     ) -> None:
         self._service = service
@@ -80,12 +107,20 @@ class MatchController:
         requiring one in the request body.
 
         Raises:
+            MatchingEngineUnavailableError: if this build doesn't have the
+                `matching` extra installed (self._service is None).
             InvalidMatchRequest: if parameter_json isn't a valid $match
                 Parameters payload containing a Patient resource (and no
                 cms_smart identity token is present), or if a cms_smart
                 identity token is present but IAL2 support isn't
                 configured on this service.
         """
+        if self._service is None:
+            raise MatchingEngineUnavailableError(
+                "This build does not include cms-hte-patient-matching "
+                "(the matching extra) -- /Patient/$match is unavailable. "
+                "See INSTALL_MATCHING_ENGINE in the service's Dockerfile."
+            )
         cms_smart_present = self._has_cms_smart_extension(jwt_claims)
         ial2_token = extract_cms_smart_id_token(jwt_claims)
         if cms_smart_present and ial2_token is None:

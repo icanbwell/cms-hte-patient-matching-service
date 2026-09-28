@@ -12,8 +12,21 @@ dependencies = [
     "python-json-logger>=3.2.1",
     "pyjwt[crypto]>=2.9.0",
     "httpx>=0.27.2",
-    "cms-hte-patient-matching>=0.0.11",
     "cms-hte-ial2-reader>=0.0.4",
+]
+
+[project.optional-dependencies]
+# Pulls in duckdb, which has no public musllinux (Alpine) wheel for the version this repo
+# needs -- only a JFrog-hosted one (see icanbwell/python-alpine-wheels), so installing this
+# extra on Alpine requires JFrog access. Split out so the default build (this repo is
+# temporarily public; JFrog secrets don't reach it, BAI-894) can install everything else
+# from public sources and skip $match support, while the hardened build
+# (icanbwell/bwell-cms-hte-patient-matching-service's bwell.Dockerfile, which has JFrog
+# access) installs this extra and ships full functionality. See Dockerfile's
+# INSTALL_MATCHING_ENGINE build arg and patient_matching_service/service/match_controller.py's
+# MATCHING_ENGINE_AVAILABLE guard.
+matching = [
+    "cms-hte-patient-matching>=0.0.11",
 ]
 
 [dependency-groups]
@@ -39,16 +52,13 @@ version = { file = "VERSION" }
 # This is a service, not a publishable package -- uv sync only installs
 # dependencies; app code is COPY'd into the Docker image, not pip installed.
 package = false
-
-[[tool.uv.index]]
-name = "jfrog"
-url = "https://artifacts.bwell.com/artifactory/api/pypi/virtual-pypi/simple"
-# Must be `default = true`, not `explicit = true`. `explicit` only routes
-# packages listed under [tool.uv.sources] -- with nothing mapped there
-# (as this repo had), every dependency silently kept resolving against the
-# public index instead, despite this block's presence. `default` routes
-# everything through JFrog unless a package is overridden elsewhere.
-default = true
+# No JFrog index here (unlike icanbwell/bwell-cms-hte-patient-matching-service's
+# bwell.Dockerfile, which still resolves through JFrog): this repo is temporarily public
+# (BAI-894), and org-scoped JFrog secrets don't reach it. Resolves against public PyPI
+# directly, matching icanbwell/kill-the-clipboard-scanner's own pyproject.toml. The
+# `matching` extra's duckdb dependency has no public musllinux (Alpine) wheel, so
+# Dockerfile's INSTALL_MATCHING_ENGINE=true path compiles it from source instead of
+# fetching a prebuilt wheel (which is what bwell.Dockerfile's JFrog access buys it).
 
 [tool.pytest.ini_options]
 addopts = "--capture=fd"
@@ -68,6 +78,14 @@ ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
 module = ["prometheus_fastapi_instrumentator.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+# The `matching` extra (cms-hte-patient-matching) isn't installed in every build --
+# see Dockerfile's INSTALL_MATCHING_ENGINE and match_controller.py's
+# MATCHING_ENGINE_AVAILABLE. pre-commit.Dockerfile's lint image doesn't install it at
+# all, so mypy needs this even when the extra IS present elsewhere.
+module = ["patient_matching", "patient_matching.*"]
 ignore_missing_imports = true
 
 [tool.ruff]

@@ -6,6 +6,14 @@ writing): which FHIR server backs the candidate cache per environment. If
 FHIR_BASE_URL isn't set, the cache starts empty and every $match request
 returns no_match -- this is a deliberate degrade-don't-crash choice, not a
 bug, so the service stays deployable/testable while that's decided.
+
+cms-hte-patient-matching itself is an optional `matching` extra (see
+pyproject.toml, Dockerfile's INSTALL_MATCHING_ENGINE build arg, and
+service/match_controller.py's MATCHING_ENGINE_AVAILABLE) -- it pulls in duckdb,
+which has no public musllinux wheel, so a build without JFrog access (this
+repo is temporarily public; BAI-894) can't install it. When it's absent,
+/Patient/$match returns 503 (MatchingEngineUnavailableError below) instead of
+the app failing to start.
 """
 
 from __future__ import annotations
@@ -15,7 +23,7 @@ import logging
 import os
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from cmshteial2reader import (
     IAL2Extractor,
@@ -25,12 +33,6 @@ from cmshteial2reader import (
 from fastapi import APIRouter, Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from patient_matching.api.service import PatientMatcherService, ServiceConfig
-from patient_matching.cache.cache_backend import CacheBackend
-from patient_matching.cache.cache_manager import CacheManager, CacheManagerConfig
-from patient_matching.cache.duckdb_cache import DuckDBCache
-from patient_matching.fhir_client.auth import ClientCredentialsAuth
-from patient_matching.fhir_client.client import FhirClient, FhirClientConfig
 from prometheus_fastapi_instrumentator import Instrumentator
 
 from patient_matching_service.deps import verify_jwt
@@ -38,13 +40,23 @@ from patient_matching_service.filters.endpoint_filter import EndpointFilter
 from patient_matching_service.jwt_validator import JWTValidator
 from patient_matching_service.observability.logging import configure_logging
 from patient_matching_service.service.match_controller import (
+    MATCHING_ENGINE_AVAILABLE,
     Ial2PatientValidationError,
     InvalidMatchRequest,
     MatchController,
+    MatchingEngineUnavailableError,
     get_match_controller,
 )
 from patient_matching_service.testing_ui.routes import is_testing_ui_enabled
 from patient_matching_service.testing_ui.routes import router as testing_ui_router
+
+# See match_controller.py's module-level comment: `patient_matching`-specific imports
+# (PatientMatcherService, CacheBackend, etc.) are TYPE_CHECKING-only here for the same
+# reason -- `from __future__ import annotations` makes every annotation below safe to
+# reference even when this build doesn't have the `matching` extra installed. The real
+# (runtime) imports happen inside _build_cache()/lifespan(), gated on MATCHING_ENGINE_AVAILABLE.
+if TYPE_CHECKING:
+    from patient_matching.cache.cache_backend import CacheBackend
 
 configure_logging()
 logger = logging.getLogger(__name__)
@@ -53,7 +65,17 @@ logging.getLogger("uvicorn.access").addFilter(EndpointFilter(path="/health"))
 
 
 async def _build_cache() -> CacheBackend:
-    """Build the DuckDB candidate cache, populated from a FHIR server if configured."""
+    """Build the DuckDB candidate cache, populated from a FHIR server if configured.
+
+    Only called when MATCHING_ENGINE_AVAILABLE (see lifespan()) -- imports the
+    `matching` extra's classes locally rather than at module scope so this module
+    still imports cleanly in a build that doesn't have that extra installed.
+    """
+    from patient_matching.cache.cache_manager import CacheManager, CacheManagerConfig
+    from patient_matching.cache.duckdb_cache import DuckDBCache
+    from patient_matching.fhir_client.auth import ClientCredentialsAuth
+    from patient_matching.fhir_client.client import FhirClient, FhirClientConfig
+
     cache = DuckDBCache(database=os.getenv("CACHE_DATABASE_PATH", ":memory:"))
 
     fhir_base_url = os.getenv("FHIR_BASE_URL")
@@ -144,8 +166,19 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
             "production or externally-reachable deployment."
         )
 
-    cache = await _build_cache()
-    service = PatientMatcherService(cache=cache, config=ServiceConfig())
+    cache = None
+    if MATCHING_ENGINE_AVAILABLE:
+        from patient_matching.api.service import PatientMatcherService, ServiceConfig
+
+        cache = await _build_cache()
+        service = PatientMatcherService(cache=cache, config=ServiceConfig())
+    else:
+        logger.warning(
+            "This build does not include cms-hte-patient-matching (the matching "
+            "extra) -- /Patient/$match will return 503 until it's installed. See "
+            "INSTALL_MATCHING_ENGINE in the Dockerfile."
+        )
+        service = None
     ial2_extractor = _build_ial2_extractor()
     app.state.match_controller = MatchController(
         service=service, ial2_extractor=ial2_extractor
@@ -157,7 +190,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     yield
 
     logger.info("Shutting down patient_matching_service...")
-    await cache.close()
+    if cache is not None:
+        await cache.close()
 
 
 app = FastAPI(lifespan=lifespan)
@@ -180,6 +214,13 @@ async def _invalid_match_request_handler(
     request: Request, exc: InvalidMatchRequest
 ) -> JSONResponse:
     return JSONResponse({"detail": str(exc)}, status_code=400)
+
+
+@app.exception_handler(MatchingEngineUnavailableError)
+async def _matching_engine_unavailable_handler(
+    request: Request, exc: MatchingEngineUnavailableError
+) -> JSONResponse:
+    return JSONResponse({"detail": str(exc)}, status_code=503)
 
 
 @app.exception_handler(TokenVerificationError)

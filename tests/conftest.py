@@ -3,6 +3,7 @@ from typing import Any
 
 import httpx
 import pytest
+import pytest_asyncio
 from asgi_lifespan import LifespanManager
 from fastapi.testclient import TestClient
 from httpx import AsyncClient
@@ -11,7 +12,7 @@ from patient_matching_service.api import app
 from tests.common import create_async_client_unopened
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def async_client() -> AsyncGenerator[httpx.AsyncClient, None]:
     async with (
         LifespanManager(app) as manager,
@@ -22,7 +23,7 @@ async def async_client() -> AsyncGenerator[httpx.AsyncClient, None]:
         yield client
 
 
-@pytest.fixture(scope="function")
+@pytest_asyncio.fixture(scope="function")
 async def async_client_unopened() -> AsyncGenerator[AsyncClient, Any]:
     async with create_async_client_unopened() as client:
         yield client

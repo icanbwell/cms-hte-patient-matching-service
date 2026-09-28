@@ -3,8 +3,15 @@ from unittest.mock import AsyncMock
 
 import pytest
 from cmshteial2reader import TokenVerificationError
-from patient_matching.api.service import MatchResponse
 from pydantic import ValidationError
+
+# The `matching` extra isn't installed in every build (see
+# patient_matching_service/service/match_controller.py's module-level comment). This
+# module mocks PatientMatcherService entirely, but still imports the real MatchResponse
+# type below to build fixture data -- skip rather than error at collection when absent.
+pytest.importorskip("patient_matching", reason="`matching` extra not installed")
+
+from patient_matching.api.service import MatchResponse
 
 from patient_matching_service.service.match_controller import (
     Ial2PatientValidationError,
@@ -63,6 +70,7 @@ class TestExtractPatient:
 
 
 class TestMatch:
+    @pytest.mark.asyncio
     async def test_calls_service_and_builds_bundle(self) -> None:
         service = AsyncMock()
         service.match_patient.return_value = MatchResponse(
@@ -91,6 +99,7 @@ class TestMatch:
         assert extensions["https://icanbwell.com/patient_match/outcome"] == "match"
         assert extensions["https://icanbwell.com/patient_match/matched_rule_id"] == "01"
 
+    @pytest.mark.asyncio
     async def test_no_match_builds_empty_bundle(self) -> None:
         service = AsyncMock()
         service.match_patient.return_value = MatchResponse(outcome="no_match")
@@ -103,6 +112,7 @@ class TestMatch:
         assert bundle["total"] == 0
         assert "entry" not in bundle
 
+    @pytest.mark.asyncio
     async def test_invalid_request_never_calls_service(self) -> None:
         service = AsyncMock()
         controller = MatchController(service=service)
@@ -112,6 +122,7 @@ class TestMatch:
 
         service.match_patient.assert_not_called()
 
+    @pytest.mark.asyncio
     async def test_missing_body_without_cms_smart_claim_rejected(self) -> None:
         service = AsyncMock()
         controller = MatchController(service=service)
@@ -123,6 +134,7 @@ class TestMatch:
 
 
 class TestMatchWithIal2:
+    @pytest.mark.asyncio
     async def test_cms_smart_claim_extracts_patient_and_skips_body(self) -> None:
         service = AsyncMock()
         service.match_patient.return_value = MatchResponse(outcome="no_match")
@@ -139,6 +151,7 @@ class TestMatchWithIal2:
         service.match_patient.assert_called_once_with(extracted_patient)
         assert bundle["total"] == 0
 
+    @pytest.mark.asyncio
     async def test_cms_smart_claim_ignores_body(self) -> None:
         service = AsyncMock()
         service.match_patient.return_value = MatchResponse(outcome="no_match")
@@ -155,6 +168,7 @@ class TestMatchWithIal2:
 
         service.match_patient.assert_called_once_with(extracted_patient)
 
+    @pytest.mark.asyncio
     async def test_cms_smart_claim_without_configured_extractor_rejected(self) -> None:
         service = AsyncMock()
         controller = MatchController(service=service, ial2_extractor=None)
@@ -164,6 +178,7 @@ class TestMatchWithIal2:
 
         service.match_patient.assert_not_called()
 
+    @pytest.mark.asyncio
     async def test_cms_smart_claim_propagates_token_verification_error(self) -> None:
         service = AsyncMock()
         ial2_extractor = AsyncMock()
@@ -175,6 +190,7 @@ class TestMatchWithIal2:
 
         service.match_patient.assert_not_called()
 
+    @pytest.mark.asyncio
     async def test_cms_smart_claim_wraps_validation_error(self) -> None:
         """MatchController wraps the extractor's raw pydantic ValidationError
         in Ial2PatientValidationError, not letting it propagate directly --
@@ -202,6 +218,7 @@ class TestMatchWithIal2:
             {"version": "1"},
         ],
     )
+    @pytest.mark.asyncio
     async def test_malformed_cms_smart_extension_rejected_not_fallen_back_to_body(
         self, cms_smart_extension: dict[str, Any]
     ) -> None:
@@ -224,6 +241,7 @@ class TestMatchWithIal2:
         ial2_extractor.extract.assert_not_called()
         service.match_patient.assert_not_called()
 
+    @pytest.mark.asyncio
     async def test_no_cms_smart_claim_uses_body_path_even_when_ial2_configured(
         self,
     ) -> None:
