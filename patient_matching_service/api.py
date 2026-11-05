@@ -21,6 +21,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import urllib.parse
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING, Any
@@ -57,11 +58,73 @@ from patient_matching_service.testing_ui.routes import router as testing_ui_rout
 # (runtime) imports happen inside _build_cache()/lifespan(), gated on MATCHING_ENGINE_AVAILABLE.
 if TYPE_CHECKING:
     from patient_matching.cache.cache_backend import CacheBackend
+    from patient_matching.fhir_client.auth import ClientCredentialsAuth
 
 configure_logging()
 logger = logging.getLogger(__name__)
 
 logging.getLogger("uvicorn.access").addFilter(EndpointFilter(path="/health"))
+
+
+def _parse_fhir_search_params(raw: str | None) -> dict[str, str] | None:
+    """Parse FHIR_PATIENT_SEARCH_PARAMS into the dict the cache build sends to FHIR.
+
+    The value is a URL query string such as ``_security=<system>|<code>``, and
+    restricts which Patients the cache pulls (used to start an environment on a
+    small, tagged test sample before pulling everyone). Unset or blank means no
+    filter.
+
+    Raises ValueError on a malformed string or a repeated key: the cache build passes
+    a flat dict, so a repeated key would silently keep only one value, and a filter
+    that quietly widens to "everyone" is the failure we most want to avoid.
+    """
+    if raw is None or not raw.strip():
+        return None
+    pairs = urllib.parse.parse_qsl(
+        raw.strip(), keep_blank_values=False, strict_parsing=True
+    )
+    params: dict[str, str] = {}
+    for key, value in pairs:
+        if not key:
+            raise ValueError("FHIR_PATIENT_SEARCH_PARAMS has a parameter with no name")
+        if key in params:
+            raise ValueError(
+                f"FHIR_PATIENT_SEARCH_PARAMS repeats the key {key!r}; "
+                "repeated keys are not supported"
+            )
+        params[key] = value
+    return params or None
+
+
+def _build_fhir_auth() -> ClientCredentialsAuth | None:
+    """Build OAuth2 client-credentials auth for the FHIR server, or None if unset.
+
+    FHIR_SCOPE is sent as the token request's ``scope`` (b.well's FHIR server
+    enforces tenant isolation from ``access/<tenant>`` scopes, so this decides which
+    patients the cache can see). FHIR_TOKEN_RESOURCE, if set, is sent as
+    ``resource`` (Descope only adds that audience to the token when asked).
+    """
+    from patient_matching.fhir_client.auth import ClientCredentialsAuth
+
+    token_url = os.getenv("FHIR_TOKEN_URL")
+    client_id = os.getenv("FHIR_CLIENT_ID")
+    client_secret = os.getenv("FHIR_CLIENT_SECRET")
+    if token_url and client_id and client_secret:
+        resource = os.getenv("FHIR_TOKEN_RESOURCE")
+        return ClientCredentialsAuth(
+            token_url=token_url,
+            client_id=client_id,
+            client_secret=client_secret,
+            scope=os.getenv("FHIR_SCOPE", ""),
+            extra_params={"resource": resource} if resource else None,
+        )
+    if token_url or client_id or client_secret:
+        logger.warning(
+            "FHIR client-credentials auth is partly configured -- FHIR_TOKEN_URL, "
+            "FHIR_CLIENT_ID and FHIR_CLIENT_SECRET must all be set. Calling the FHIR "
+            "server without auth."
+        )
+    return None
 
 
 async def _build_cache() -> CacheBackend:
@@ -73,7 +136,6 @@ async def _build_cache() -> CacheBackend:
     """
     from patient_matching.cache.cache_manager import CacheManager, CacheManagerConfig
     from patient_matching.cache.duckdb_cache import DuckDBCache
-    from patient_matching.fhir_client.auth import ClientCredentialsAuth
     from patient_matching.fhir_client.client import FhirClient, FhirClientConfig
 
     cache = DuckDBCache(database=os.getenv("CACHE_DATABASE_PATH", ":memory:"))
@@ -88,26 +150,26 @@ async def _build_cache() -> CacheBackend:
         )
         return cache
 
-    auth = None
-    token_url = os.getenv("FHIR_TOKEN_URL")
-    client_id = os.getenv("FHIR_CLIENT_ID")
-    client_secret = os.getenv("FHIR_CLIENT_SECRET")
-    if token_url and client_id and client_secret:
-        auth = ClientCredentialsAuth(
-            token_url=token_url, client_id=client_id, client_secret=client_secret
-        )
-
-    fhir_client = FhirClient(FhirClientConfig(base_url=fhir_base_url, auth=auth))
+    search_params = _parse_fhir_search_params(os.getenv("FHIR_PATIENT_SEARCH_PARAMS"))
+    fhir_client = FhirClient(
+        FhirClientConfig(base_url=fhir_base_url, auth=_build_fhir_auth())
+    )
     cache_manager = CacheManager(
         fhir_client=fhir_client,
         cache=cache,
         config=CacheManagerConfig(
             refresh_interval_minutes=int(
                 os.getenv("CACHE_REFRESH_INTERVAL_MINUTES", "60")
-            )
+            ),
+            search_params=search_params,
         ),
     )
-    logger.info("Building patient cache from FHIR server %s", fhir_base_url)
+    # Log the filter's keys, not its values: a value could name a tenant or person.
+    logger.info(
+        "Building patient cache from FHIR server %s (search filter keys: %s)",
+        fhir_base_url,
+        sorted(search_params) if search_params else "none",
+    )
     counts = await cache_manager.build_cache()
     logger.info("Patient cache built: %s", counts)
     cache_manager.start_scheduled_refresh()
@@ -179,6 +241,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
             "INSTALL_MATCHING_ENGINE in the Dockerfile."
         )
         service = None
+    app.state.cache = cache
     ial2_extractor = _build_ial2_extractor()
     app.state.match_controller = MatchController(
         service=service, ial2_extractor=ial2_extractor
@@ -268,8 +331,18 @@ async def _ial2_patient_validation_error_handler(
 
 
 @app.get("/health")
-async def health() -> dict[str, str]:
-    return {"status": "ok"}
+async def health(request: Request) -> dict[str, Any]:
+    body: dict[str, Any] = {"status": "ok"}
+    # The cached patient count lets a deploy be checked from outside: an empty or
+    # unloaded cache otherwise looks exactly like "patient not found". Probes only
+    # look at the status code, so a failed count never fails the probe.
+    cache = getattr(request.app.state, "cache", None)
+    if cache is not None:
+        try:
+            body["cache_patients"] = await cache.count()
+        except Exception:
+            logger.exception("Could not count cached patients for /health")
+    return body
 
 
 protected_router = APIRouter()
