@@ -41,7 +41,10 @@ The hardened production build (`icanbwell/bwell-cms-hte-patient-matching-service
 | Variable | Purpose |
 |---|---|
 | `FHIR_BASE_URL` | FHIR server the candidate cache is built from. **Unset by default** -- the service still starts, but the cache stays empty and every `$match` request returns `no_match` until this is set. |
-| `FHIR_TOKEN_URL`, `FHIR_CLIENT_ID`, `FHIR_CLIENT_SECRET` | OAuth2 client-credentials auth for the FHIR server, if required. |
+| `FHIR_TOKEN_URL`, `FHIR_CLIENT_ID`, `FHIR_CLIENT_SECRET` | OAuth2 client-credentials auth for the FHIR server, if required. All three must be set; if only some are, the service logs a warning and calls the FHIR server without auth. |
+| `FHIR_SCOPE` | Optional `scope` for the FHIR token request (space-separated). The FHIR server's tenant isolation reads `access/...` scopes, so this decides which patients the cache can see. |
+| `FHIR_TOKEN_RESOURCE` | Optional `resource` for the FHIR token request, for token services that only add an audience when asked. |
+| `FHIR_PATIENT_SEARCH_PARAMS` | Optional FHIR search filter, as a URL query string, applied when the cache pulls Patients (e.g. `_security=<system>\|<code>` to start with a tagged test sample). Unset means every Patient the token can read. A malformed value or a repeated key stops startup rather than silently widening the filter. |
 | `CACHE_DATABASE_PATH` | DuckDB cache path. Defaults to `:memory:`. |
 | `CACHE_REFRESH_INTERVAL_MINUTES` | How often the cache re-syncs from the FHIR server. Defaults to `60`. |
 | `AUTH_JWK_URLS` | Comma-separated JWKS endpoint(s) for bearer-token auth on `/Patient/$match`. **Unset by default** -- fails closed (every request to that route returns 401), not open. |
@@ -68,7 +71,10 @@ The hardened production build (`icanbwell/bwell-cms-hte-patient-matching-service
 
   Either way, the response is a `searchset` `Bundle` of matched candidates, each entry carrying
   the match outcome and matched rule ID as extensions.
-- `GET /health` -- unauthenticated liveness/readiness probe target.
+- `GET /health` -- unauthenticated liveness/readiness probe target. When the matching engine is
+  installed, the body also reports `cache_patients`, the number of patients in this worker's
+  cache, so a deploy can be checked from outside (an empty cache otherwise looks like
+  "patient not found").
 
 ## Running tests
 
