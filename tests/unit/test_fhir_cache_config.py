@@ -39,9 +39,20 @@ def test_several_parameters() -> None:
     }
 
 
-@pytest.mark.parametrize("raw", ["a=1&a=2", "novalue", "=x"])
+@pytest.mark.parametrize("raw", ["a=1&a=2", "novalue", "=x", "_security=", "a=1&b="])
 def test_malformed_or_ambiguous_filter_is_rejected(raw: str) -> None:
     # A filter that silently widens to "everyone" is the failure to avoid, so
     # anything ambiguous fails startup loudly instead.
     with pytest.raises(ValueError):
         _parse_fhir_search_params(raw)
+
+
+def test_plus_in_value_is_not_decoded_to_a_space() -> None:
+    # A FHIR dateTime offset such as +00:00 must reach the server unchanged.
+    assert _parse_fhir_search_params("_lastUpdated=gt2026-01-01T00:00:00+00:00") == {
+        "_lastUpdated": "gt2026-01-01T00:00:00+00:00"
+    }
+
+
+def test_percent_encoded_plus_and_space_are_decoded() -> None:
+    assert _parse_fhir_search_params("a=x%2By%20z") == {"a": "x+y z"}

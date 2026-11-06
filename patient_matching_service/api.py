@@ -74,19 +74,32 @@ def _parse_fhir_search_params(raw: str | None) -> dict[str, str] | None:
     small, tagged test sample before pulling everyone). Unset or blank means no
     filter.
 
-    Raises ValueError on a malformed string or a repeated key: the cache build passes
+    Raises ValueError on a malformed string, an empty value or a repeated key: the cache build passes
     a flat dict, so a repeated key would silently keep only one value, and a filter
     that quietly widens to "everyone" is the failure we most want to avoid.
     """
     if raw is None or not raw.strip():
         return None
-    pairs = urllib.parse.parse_qsl(
-        raw.strip(), keep_blank_values=False, strict_parsing=True
-    )
     params: dict[str, str] = {}
-    for key, value in pairs:
+    for segment in raw.strip().split("&"):
+        if not segment:
+            continue  # tolerate a stray or trailing "&"
+        key, separator, value = segment.partition("=")
+        if not separator:
+            raise ValueError(
+                f"FHIR_PATIENT_SEARCH_PARAMS has a parameter with no '=': {segment!r}"
+            )
+        # unquote, not unquote_plus: a raw "+" (e.g. a dateTime offset) must reach
+        # the FHIR server unchanged rather than become a space.
+        key = urllib.parse.unquote(key)
+        value = urllib.parse.unquote(value)
         if not key:
             raise ValueError("FHIR_PATIENT_SEARCH_PARAMS has a parameter with no name")
+        if not value:
+            raise ValueError(
+                f"FHIR_PATIENT_SEARCH_PARAMS has an empty value for {key!r}; "
+                "an empty value would drop the filter and widen the cache"
+            )
         if key in params:
             raise ValueError(
                 f"FHIR_PATIENT_SEARCH_PARAMS repeats the key {key!r}; "
