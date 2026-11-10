@@ -175,3 +175,42 @@ async def test_malformed_filter_stops_the_cache_build(
         await api._build_cache()
 
     assert _FakeCacheManager.configs == []
+
+
+@pytest.mark.asyncio
+async def test_filter_and_token_reach_the_patient_search_request(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Real FhirClient and CacheManager; only the HTTP transport is faked."""
+    from patient_matching.cache.cache_manager import CacheManager
+    from patient_matching.fhir_client.client import FhirClient
+
+    seen: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(request)
+        if request.url.path == "/token":
+            return httpx.Response(200, json={"access_token": "t", "expires_in": 3600})
+        return httpx.Response(200, json={"resourceType": "Bundle", "entry": []})
+
+    monkeypatch.setattr(
+        FhirClient,
+        "_create_http_client",
+        lambda self: httpx.AsyncClient(transport=httpx.MockTransport(handler)),
+    )
+    # The refresh loop would outlive the test.
+    monkeypatch.setattr(CacheManager, "start_scheduled_refresh", lambda self: None)
+    monkeypatch.setenv("FHIR_BASE_URL", "https://fhir.example.test/4_0_0")
+    monkeypatch.setenv("FHIR_PATIENT_SEARCH_PARAMS", "_security=a|b")
+    for name, value in {
+        **AUTH_ENV,
+        "FHIR_TOKEN_URL": "https://idp.example.test/token",
+    }.items():
+        monkeypatch.setenv(name, value)
+
+    await api._build_cache()
+
+    searches = [r for r in seen if r.url.path.endswith("/Patient")]
+    assert len(searches) == 1
+    assert searches[0].url.params["_security"] == "a|b"
+    assert searches[0].headers["Authorization"] == "Bearer t"

@@ -38,7 +38,7 @@ def test_health_reports_the_cached_patient_count(
 ) -> None:
     monkeypatch.delenv("FHIR_BASE_URL", raising=False)
     with TestClient(app) as client:
-        client.app.state.cache = _CountingCache(7)  # type: ignore[attr-defined]
+        app.state.cache = _CountingCache(7)
         body = client.get("/health").json()
     assert body["cache_patients"] == 7
 
@@ -49,7 +49,7 @@ def test_health_still_ok_when_the_count_fails(
     # Probes only read the status code, so a failed count must not fail the probe.
     monkeypatch.delenv("FHIR_BASE_URL", raising=False)
     with TestClient(app) as client:
-        client.app.state.cache = _FailingCache()  # type: ignore[attr-defined]
+        app.state.cache = _FailingCache()
         response = client.get("/health")
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}

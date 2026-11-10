@@ -51,11 +51,18 @@ def test_malformed_or_ambiguous_filter_is_rejected(raw: str) -> None:
         _parse_fhir_search_params(raw)
 
 
-@pytest.mark.parametrize("raw", ["a=1&", "&a=1", "a=1&&b=2"])
-def test_stray_separators_around_real_parameters_are_tolerated(raw: str) -> None:
-    params = _parse_fhir_search_params(raw)
-    assert params is not None
-    assert params["a"] == "1"
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        ("a=1&", {"a": "1"}),
+        ("&a=1", {"a": "1"}),
+        ("a=1&&b=2", {"a": "1", "b": "2"}),
+    ],
+)
+def test_stray_separators_around_real_parameters_are_tolerated(
+    raw: str, expected: dict[str, str]
+) -> None:
+    assert _parse_fhir_search_params(raw) == expected
 
 
 def test_plus_in_value_is_not_decoded_to_a_space() -> None:
