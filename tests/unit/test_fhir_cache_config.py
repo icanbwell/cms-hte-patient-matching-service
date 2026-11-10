@@ -39,12 +39,23 @@ def test_several_parameters() -> None:
     }
 
 
-@pytest.mark.parametrize("raw", ["a=1&a=2", "novalue", "=x", "_security=", "a=1&b="])
+@pytest.mark.parametrize(
+    "raw",
+    ["a=1&a=2", "novalue", "=x", "_security=", "a=1&b=", "&", "&&", " & ", "&&&"],
+)
 def test_malformed_or_ambiguous_filter_is_rejected(raw: str) -> None:
     # A filter that silently widens to "everyone" is the failure to avoid, so
-    # anything ambiguous fails startup loudly instead.
+    # anything ambiguous fails startup loudly instead. A value made only of
+    # separators has no parameter at all, so it must not read as "no filter".
     with pytest.raises(ValueError):
         _parse_fhir_search_params(raw)
+
+
+@pytest.mark.parametrize("raw", ["a=1&", "&a=1", "a=1&&b=2"])
+def test_stray_separators_around_real_parameters_are_tolerated(raw: str) -> None:
+    params = _parse_fhir_search_params(raw)
+    assert params is not None
+    assert params["a"] == "1"
 
 
 def test_plus_in_value_is_not_decoded_to_a_space() -> None:

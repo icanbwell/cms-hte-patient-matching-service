@@ -106,7 +106,13 @@ def _parse_fhir_search_params(raw: str | None) -> dict[str, str] | None:
                 "repeated keys are not supported"
             )
         params[key] = value
-    return params or None
+    if not params:
+        # Only separators (e.g. "&"): there is no parameter, but the value is not
+        # blank either, so reading it as "no filter" would silently widen the cache.
+        raise ValueError(
+            "FHIR_PATIENT_SEARCH_PARAMS has no parameters; unset it for no filter"
+        )
+    return params
 
 
 def _build_fhir_auth() -> ClientCredentialsAuth | None:
