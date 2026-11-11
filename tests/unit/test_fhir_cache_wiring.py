@@ -202,10 +202,7 @@ async def test_filter_and_token_reach_the_patient_search_request(
     monkeypatch.setattr(CacheManager, "start_scheduled_refresh", lambda self: None)
     monkeypatch.setenv("FHIR_BASE_URL", "https://fhir.example.test/4_0_0")
     monkeypatch.setenv("FHIR_PATIENT_SEARCH_PARAMS", "_security=a|b")
-    for name, value in {
-        **AUTH_ENV,
-        "FHIR_TOKEN_URL": "https://idp.example.test/token",
-    }.items():
+    for name, value in AUTH_ENV.items():
         monkeypatch.setenv(name, value)
 
     await api._build_cache()
