@@ -74,9 +74,11 @@ def _parse_fhir_search_params(raw: str | None) -> dict[str, str] | None:
     small, tagged test sample before pulling everyone). Unset or blank means no
     filter.
 
-    Raises ValueError on a malformed string, an empty value or a repeated key: the cache build passes
-    a flat dict, so a repeated key would silently keep only one value, and a filter
-    that quietly widens to "everyone" is the failure we most want to avoid.
+    Stray separators around real parameters (``a=1&&b=2``) are tolerated. Raises
+    ValueError on a malformed string, an empty value, a repeated key, or a value made
+    only of separators (``&``): the cache build passes a flat dict, so a repeated key
+    would silently keep only one value, and a filter that quietly widens to "everyone"
+    is the failure we most want to avoid.
     """
     if raw is None or not raw.strip():
         return None
