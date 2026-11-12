@@ -26,7 +26,7 @@ dependencies = [
 # INSTALL_MATCHING_ENGINE build arg and patient_matching_service/service/match_controller.py's
 # MATCHING_ENGINE_AVAILABLE guard.
 matching = [
-    "cms-hte-patient-matching>=0.0.11",
+    "cms-hte-patient-matching>=0.0.13",
 ]
 
 [dependency-groups]
