@@ -448,7 +448,7 @@ wheels = [
 
 [[package]]
 name = "cms-hte-patient-matching"
-version = "0.0.11"
+version = "0.0.13"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "apscheduler" },
@@ -463,9 +463,9 @@ dependencies = [
     { name = "usaddress" },
     { name = "usaddress-scourgify" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/4f/2c/b9ee431a6932285c6551cfebfb80ae087684cfc2daa17a20f92cfe4837da/cms_hte_patient_matching-0.0.11.tar.gz", hash = "sha256:1ccae7db2b1612807fe030fd6159f0234bf11d4ed7b6243e7e44ccb762400dab", size = 103263, upload-time = "2026-09-18T04:05:29.307Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/2a/68/9c38cc36d2f368693748c94edccd4abf669319e06620c4ca8ed18a5e4a0e/cms_hte_patient_matching-0.0.13.tar.gz", hash = "sha256:cdd7b8cc43fb2b691d6f4093b50b7891b62d034debda614d8e128bda3cc30728", size = 111848, upload-time = "2026-11-09T23:21:35.579Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/35/3b/6e0ae4df5b8cb13b189d65dc2de3bb1199ec0f659902f9648a9e15ad2059/cms_hte_patient_matching-0.0.11-py3-none-any.whl", hash = "sha256:1614e584d745aa6e04e9b25553aeaf5b1a2009fa133fca07ec671a5ac97b505b", size = 118024, upload-time = "2026-09-18T04:05:27.805Z" },
+    { url = "https://files.pythonhosted.org/packages/1c/cd/7432d765c53e855645aad9b776dddefcb4929e3828379db7ad4594db961d/cms_hte_patient_matching-0.0.13-py3-none-any.whl", hash = "sha256:eed26b81571382c763d5dc57529c93f00f7a39161946dc51d9e183668cd226f5", size = 126470, upload-time = "2026-11-09T23:21:34.202Z" },
 ]
 
 [[package]]
@@ -916,7 +916,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "cms-hte-ial2-reader", specifier = ">=0.0.4" },
-    { name = "cms-hte-patient-matching", marker = "extra == 'matching'", specifier = ">=0.0.11" },
+    { name = "cms-hte-patient-matching", marker = "extra == 'matching'", specifier = ">=0.0.13" },
     { name = "fastapi", specifier = ">=0.110.0" },
     { name = "httpx", specifier = ">=0.27.2" },
     { name = "prometheus-fastapi-instrumentator", specifier = ">=7.0.0" },

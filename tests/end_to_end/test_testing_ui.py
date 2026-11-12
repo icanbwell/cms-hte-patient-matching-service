@@ -30,18 +30,20 @@ requires_matching_engine = pytest.mark.skipif(
     not MATCHING_ENGINE_AVAILABLE, reason="`matching` extra not installed"
 )
 
+# Not placeholders: the engine drops "123 Main St" and ZIP 99999 (spec V.D), which leaves the
+# patient with no usable street line and an `insufficient_fields` outcome.
 _SIMPLE_PATIENT: dict[str, Any] = {
     "resourceType": "Patient",
     "name": [{"family": "Smith", "given": ["John"]}],
     "birthDate": "1990-01-15",
-    "address": [{"line": ["123 Main St"], "postalCode": "12345"}],
+    "address": [{"line": ["1 Example Way"], "postalCode": "90210"}],
 }
 
 _DIFFERENT_PATIENT: dict[str, Any] = {
     "resourceType": "Patient",
     "name": [{"family": "Jones", "given": ["Robert"]}],
     "birthDate": "1975-06-20",
-    "address": [{"line": ["999 Oak Ave"], "postalCode": "99999"}],
+    "address": [{"line": ["2 Sample Road"], "postalCode": "90211"}],
 }
 
 
@@ -328,7 +330,7 @@ def test_match_pair_reports_normalized_field_values(
     assert response.status_code == 200
     body = response.json()
     assert body["normalized_fields"]["a"]["last_names"] == ["smith"]
-    assert body["normalized_fields"]["a"]["street_lines"] == ["123 main st"]
+    assert body["normalized_fields"]["a"]["street_lines"] == ["1 example way|90210"]
     assert body["normalized_fields"]["b"] == body["normalized_fields"]["a"]
 
 
